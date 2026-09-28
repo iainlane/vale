@@ -1,0 +1,15 @@
+extends: sequence
+message: "The infinitive '%[4]s' after 'be' requires 'to'. Did you mean '%[2]s %[3]s to %[4]s'?"
+level: error
+tokens:
+  - tag: MD
+  - pattern: be
+  - pattern: able
+  - tag: VB
+tests:
+  - name: fires
+    input: "I will be able reach the goal.\n"
+    contains: "Ext.Sequence:"
+  - name: clean
+    input: "I will be able to reach the goal.\n"
+    want: ""

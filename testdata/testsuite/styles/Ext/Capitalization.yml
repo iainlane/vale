@@ -1,0 +1,12 @@
+extends: capitalization
+message: "'%s' should be in sentence case."
+level: error
+scope: heading
+match: $sentence
+tests:
+  - name: fires
+    input: "# This Is A Heading\n\nBody.\n"
+    contains: "Ext.Capitalization:'This Is A Heading' should be in sentence case."
+  - name: clean
+    input: "# This is a heading\n\nBody.\n"
+    want: ""

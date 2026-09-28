@@ -1,0 +1,14 @@
+extends: consistency
+message: "Inconsistent spelling of '%s'."
+level: error
+scope: text
+ignorecase: true
+either:
+  advisor: adviser
+tests:
+  - name: fires
+    input: "The advisor spoke. The adviser left.\n"
+    contains: "Ext.Consistency:Inconsistent spelling of"
+  - name: clean
+    input: "The advisor spoke. The advisor left.\n"
+    want: ""

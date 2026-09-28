@@ -1,0 +1,13 @@
+extends: readability
+message: "Grade level %s is too high."
+level: error
+grade: 8
+metrics:
+  - Flesch-Kincaid
+tests:
+  - name: fires
+    input: "The implementation of the aforementioned infrastructure necessitates comprehensive reconsideration of organizational methodologies and interdepartmental communication paradigms across the entire enterprise.\n"
+    contains: "Ext.Readability:Grade level"
+  - name: clean
+    input: "The cat sat on the mat. It was warm.\n"
+    want: ""

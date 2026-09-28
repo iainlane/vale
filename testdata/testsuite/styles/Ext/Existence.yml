@@ -1,0 +1,11 @@
+extends: existence
+message: "Avoid '%s'."
+level: error
+tokens: [very]
+tests:
+  - name: fires
+    input: "This is very good.\n"
+    contains: "Ext.Existence:Avoid 'very'."
+  - name: clean
+    input: "This is good.\n"
+    want: ""

@@ -1,0 +1,13 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: error
+ignorecase: true
+swap:
+  utilize: use
+tests:
+  - name: fires
+    input: "We utilize caching.\n"
+    contains: "Ext.Substitution:Use 'use' instead of 'utilize'."
+  - name: clean
+    input: "We use caching.\n"
+    want: ""

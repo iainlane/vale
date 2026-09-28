@@ -1,0 +1,12 @@
+extends: repetition
+message: "'%s' is repeated."
+level: error
+alpha: true
+tokens: ['[^\s]+']
+tests:
+  - name: fires
+    input: "This is is a test.\n"
+    contains: "Ext.Repetition:'is' is repeated."
+  - name: clean
+    input: "This is a test.\n"
+    want: ""

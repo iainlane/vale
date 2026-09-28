@@ -1,0 +1,20 @@
+extends: script
+message: "Line starts with a lowercase letter."
+level: error
+scope: raw
+script: |
+  text := import("text")
+  matches := []
+  for line in text.split(scope, "\n") {
+    if text.re_match("^[a-z]", line) {
+      start := text.index(scope, line)
+      matches = append(matches, {begin: start, end: start + 1})
+    }
+  }
+tests:
+  - name: fires
+    input: "lowercase start.\n"
+    contains: "Ext.Script:Line starts with a lowercase letter."
+  - name: clean
+    input: "Uppercase start.\n"
+    want: ""

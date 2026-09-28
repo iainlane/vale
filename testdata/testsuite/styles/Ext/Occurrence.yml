@@ -1,0 +1,12 @@
+extends: occurrence
+message: "More than one exclamation mark."
+level: error
+max: 1
+token: '!'
+tests:
+  - name: fires
+    input: "Wow! Really! Yes!\n"
+    contains: "Ext.Occurrence:More than one exclamation mark."
+  - name: clean
+    input: "Wow! Really.\n"
+    want: ""

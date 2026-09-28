@@ -1,0 +1,14 @@
+extends: conditional
+message: "'%s' has no definition."
+level: error
+scope: text
+ignorecase: false
+first: '\b([A-Z]{3,5})\b'
+second: '(?:\b[A-Z][a-z]+ )+\(([A-Z]{3,5})\)'
+tests:
+  - name: fires
+    input: "Use the API today.\n"
+    contains: "Ext.Conditional:'API' has no definition."
+  - name: clean
+    input: "The Application Programming Interface (API) is here. Use the API today.\n"
+    want: ""

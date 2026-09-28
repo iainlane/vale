@@ -1,0 +1,10 @@
+extends: spelling
+message: "Did you really mean '%s'?"
+level: error
+tests:
+  - name: fires
+    input: "This is a mispeling.\n"
+    contains: "Ext.Spelling:Did you really mean 'mispeling'?"
+  - name: clean
+    input: "This is a misspelling.\n"
+    want: ""
