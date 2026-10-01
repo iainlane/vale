@@ -255,9 +255,19 @@ func baseStyles(key *ini.Key) []string {
 
 func validateLevel(key, val string, levels map[string]string) bool {
 	options := []string{"YES", "suggestion", "warning", "error"}
-	if val == "NO" || !StringInSlice(val, options) {
+	switch {
+	case val == "NO":
 		return false
-	} else if val != "YES" {
+	case !StringInSlice(val, options):
+		// Read as off, as before, but said: a typo here silently disabled
+		// the rule, and a misspelled key was never read at all.
+		if strings.Contains(key, ".") {
+			Warn(fmt.Sprintf("'%s = %s' isn't YES, NO, UNSET, or a level; Vale is switching the rule off.", key, val))
+		} else {
+			Warn(fmt.Sprintf("'%s' isn't a section option; Vale is ignoring it.", key))
+		}
+		return false
+	case val != "YES":
 		levels[key] = val
 	}
 	return true
@@ -377,10 +387,14 @@ var coreOpts = map[string]func(*ini.Section, *Config) error{
 			cfg.AddStylesPath(path)
 
 			if !system.FileExists(path) {
-				return NewE201FromTarget(
-					fmt.Sprintf("The path '%s' does not exist.", path),
-					path,
-					cfg.Flags.Path)
+				// The value was expanded on load, so the line is found by
+				// the path it was written as.
+				written := func(v string) bool {
+					v = filepath.Clean(filepath.FromSlash(v))
+					return v != "." && strings.HasSuffix(path, v)
+				}
+				return NewE201FromKey(cfg, "StylesPath", written,
+					fmt.Sprintf("The StylesPath '%s' doesn't exist.", path))
 			}
 		}
 		return nil

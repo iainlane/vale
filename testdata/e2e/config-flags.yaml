@@ -108,7 +108,7 @@ cases:
     requires: asciidoctor, dita, rst2html, xsltproc
     exit: 2
     contains: |
-      E100 [.vale.ini not found] Runtime error
+      [.vale.ini not found]:E100:no config file found
 
   - name: formats-by-name
     about: a `[formats]` key may name a file, so an extensionless one is read as markup

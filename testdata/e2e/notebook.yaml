@@ -334,7 +334,7 @@ cases:
          "cells": [
     args: broken.ipynb
     exit: 2
-    contains: "E100 [broken.ipynb] Runtime error"
+    contains: "[broken.ipynb]:E100:yaml: line 2: did not find expected node content"
 
   - name: not-a-notebook
     about: "and so is JSON with no cells in it"

@@ -1,7 +1,6 @@
 package check
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -546,9 +545,13 @@ func (mgr *Manager) loadStyles(styles []string) error {
 
 	for _, s := range need {
 		if !core.StringInSlice(s, found) {
-			return core.NewE100(
-				"loadStyles",
-				errors.New("style '"+s+"' does not exist on StylesPath"))
+			msg := fmt.Sprintf("Style '%s' isn't on the StylesPath (%s).",
+				s, strings.Join(mgr.Config.SearchPaths(), ", "))
+			if pkgs, _ := core.GetPackages(mgr.Config.RootINI); len(pkgs) > 0 {
+				msg += " If it's a package, run `vale sync`."
+			}
+			return core.NewE201FromKey(mgr.Config, "BasedOnStyles",
+				func(v string) bool { return v == s }, msg)
 		}
 	}
 

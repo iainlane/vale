@@ -20,6 +20,12 @@ type lineError struct {
 
 type errorCondition func(position int, line, target string) bool
 
+// gutter is a line number in an error's excerpt, colored through pterm so
+// `--no-color` reaches it.
+func gutter(n int) string {
+	return pterm.NewStyle(pterm.FgGreen, pterm.Bold).Sprintf("%4d", n)
+}
+
 func annotate(file []byte, target string, finder errorCondition) (lineError, error) {
 	var sb strings.Builder
 
@@ -38,17 +44,19 @@ func annotate(file []byte, target string, finder errorCondition) (lineError, err
 			s := strings.Index(plain, target) + 1
 			context.span = []int{s, s + len(target)}
 
-			sb.WriteString(
-				fmt.Sprintf("\033[1;32m%4d\033[0m* %s\n", idx, markup))
+			fmt.Fprintf(&sb, "%s* %s\n", gutter(idx), markup)
 		} else {
-			sb.WriteString(
-				fmt.Sprintf("\033[1;32m%4d\033[0m  %s\n", idx, markup))
+			fmt.Fprintf(&sb, "%s  %s\n", gutter(idx), markup)
 		}
 		idx++
 	}
 
 	if err := scanner.Err(); err != nil {
 		return lineError{}, err
+	} else if context.line == 0 {
+		// The value wasn't found, so there is no line to show; printing the
+		// whole file around nothing helps no one.
+		return context, nil
 	}
 
 	lines := []string{}
@@ -77,7 +85,7 @@ func NewError(code, title, msg string) error {
 		pterm.BgRed.Sprint(code),
 		title,
 		msg,
-		pterm.Fuzzy.Sprint(pterm.Italic.Sprintf("Execution stopped with code 1.")),
+		pterm.Fuzzy.Sprint(pterm.Italic.Sprintf("Execution stopped with code 2.")),
 	)
 }
 
@@ -122,10 +130,11 @@ func NewE201(msg, value, path string, finder errorCondition) error {
 		ctx.line,
 		ctx.span[0])
 
-	return NewError(
-		"E201",
-		title,
-		fmt.Sprintf("%s\n%s", ctx.content, msg))
+	body := msg
+	if ctx.content != "" {
+		body = fmt.Sprintf("%s\n%s", ctx.content, msg)
+	}
+	return NewError("E201", title, body)
 }
 
 // NewE201FromTarget creates a new E201 error from a target string.
@@ -148,4 +157,35 @@ func NewE201FromPosition(msg, file string, goal int) error {
 		func(position int, _, _ string) bool {
 			return position == goal
 		})
+}
+
+// NewE201FromKey creates an E201 at the line of a configuration file that
+// sets key to a value match accepts, searched across the files the run
+// loaded. It falls back to an E100 when none of them does.
+func NewE201FromKey(cfg *Config, key string, match func(value string) bool, msg string) error {
+	// hit is the value that matched, so the column points at it.
+	var hit string
+	names := func(_ int, line, _ string) bool {
+		k, v, found := strings.Cut(line, "=")
+		if !found || strings.TrimSpace(k) != key {
+			return false
+		}
+		for _, item := range strings.Split(v, ",") {
+			if item = strings.TrimSpace(item); match(item) {
+				hit = item
+				return true
+			}
+		}
+		return false
+	}
+	for _, path := range cfg.ConfigFiles {
+		f, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		if ctx, aErr := annotate(f, "", names); aErr == nil && ctx.line != 0 {
+			return NewE201(msg, hit, path, names)
+		}
+	}
+	return NewE100(key, errors.New(msg))
 }

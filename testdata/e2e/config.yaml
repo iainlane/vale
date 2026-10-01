@@ -47,7 +47,52 @@ cases:
     args: test.md
     exit: 2
     contains: |
-      E100 [loadStyles] Runtime error
+      Style 'proselint' isn't on the StylesPath
+
+  - name: unknown-style-points-at-config
+    about: "an unknown style is reported at the BasedOnStyles line that names
+      it, not at a comment that mentions it"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        # Nope is only mentioned here.
+        [*.md]
+        BasedOnStyles = Vale, Nope
+      styles/config/vocabularies/Base/accept.txt: |
+        Vale
+    args: --output=line test.md
+    exit: 2
+    contains: |
+      .vale.ini:5:E201:Style 'Nope' isn't on the StylesPath
+
+  - name: missing-styles-path
+    about: "the StylesPath line is found by the value as written, so the error
+      shows it instead of line 0 and the whole file"
+    files:
+      .vale.ini: |
+        # Where styles live.
+        StylesPath = nowhere
+
+        [*.md]
+        BasedOnStyles = Vale
+    args: --output=line test.md
+    exit: 2
+    contains: |
+      .vale.ini:2:E201:The StylesPath
+
+  - name: invalid-level-warns
+    about: "a bad level and a misspelled key used to be ignored in silence"
+    files:
+      .vale.ini: |
+        [*.md]
+        BasedOnStyle = Vale
+        Vale.Spelling = maybe
+    args: --no-color test.md
+    exit: 0
+    contains: |
+      W101 'BasedOnStyle' isn't a section option; Vale is ignoring it.
+      W101 'Vale.Spelling = maybe' isn't YES, NO, UNSET, or a level; Vale is switching the rule off.
 
   - name: level-error
     files:
