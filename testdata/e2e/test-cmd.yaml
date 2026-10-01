@@ -270,3 +270,56 @@ cases:
               "T.Silent",
               "T.Weasel"
           ]
+
+  - name: package dependencies
+    about: "a package's own `.vale.ini` names what its rules extend, and the
+      run installs it -- here a local Base -- so the cases resolve without a
+      synced project"
+    files:
+      Mine/.vale.ini: |
+        Packages = deps/Base
+
+        [*.md]
+        BasedOnStyles = Mine
+      Mine/styles/Mine/Hedge.yml: |
+        extends: Base.Words
+        message: "Don't hedge with '%s'."
+        tests:
+          - name: inherits the parent's tokens
+            input: It might work.
+            want: |
+              1:4:Mine.Hedge:Don't hedge with 'might'.
+      deps/Base/Words.yml: |
+        extends: existence
+        message: "'%s'"
+        level: warning
+        tokens:
+          - might
+    args: test Mine
+    exit: 0
+    contains: 1 passed, 0 failed
+
+  - name: a case that cannot run
+    about: "a broken rule fails its own cases and the rest still report; the
+      run exits 2, since the configuration is what's broken"
+    files:
+      styles/T/Broken.yml: |
+        extends: Missing.Parent
+        message: "x"
+        tests:
+          - name: never loads
+            input: Text.
+            contains: T.Broken
+      styles/T/Good.yml: |
+        extends: existence
+        message: "'%s'"
+        tokens:
+          - truly
+        tests:
+          - name: loads alone
+            input: It truly is.
+            contains: T.Good
+    args: test styles
+    exit: 2
+    contains: |
+      1 passed, 1 failed

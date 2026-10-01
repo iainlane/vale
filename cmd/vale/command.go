@@ -95,12 +95,12 @@ var commands = map[string]command{
 		Run:     runTests,
 		Summary: "Run the test cases kept beside a configuration's rules.",
 		Usage:   "test [path...]",
-		Detail: "With --coverage, every rule found under the given paths has to\n" +
+		Detail: "Cases live in a rule's `tests` list or in a `.test.yml` file. A\n" +
+			"package's own `Packages` are installed for the run, so a rule that\n" +
+			"extends another package resolves without `vale sync`.\n\n" +
+			"With --coverage, every rule found under the given paths has to\n" +
 			"produce an alert in at least one case. A rule that matches nothing\n" +
 			"passes its cases silently, and this is what tells you.",
-		// Not announced yet: the case schema is still settling, and a format
-		// people write files against is hard to take back. See #1122.
-		Hidden: true,
 	},
 
 	// Private: the API surface the editor integrations and the native host

@@ -54,15 +54,33 @@ type Case struct {
 	// real documents at all.
 	Rule string `yaml:"rule"`
 
-	// Want is the exact output expected, Contains an excerpt of it, and Absent
+	// Want is the exact output expected, Contains excerpts of it, and Absent
 	// what must not appear. Want is a pointer so that an empty block asserts
 	// "no alerts at all" rather than going unset.
-	Want     *string  `yaml:"want"`
-	Contains string   `yaml:"contains"`
-	Absent   []string `yaml:"absent"`
+	Want     *string `yaml:"want"`
+	Contains Strings `yaml:"contains"`
+	Absent   Strings `yaml:"absent"`
 
 	// Path is the file this case was read from.
 	Path string `yaml:"-"`
+}
+
+// Strings is one string or a list of them, so `contains: T.Rule` and a
+// list of excerpts read the same way.
+type Strings []string
+
+// UnmarshalYAML accepts a scalar as a one-item list.
+func (s *Strings) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind == yaml.ScalarNode {
+		*s = Strings{node.Value}
+		return nil
+	}
+	var list []string
+	if err := node.Decode(&list); err != nil {
+		return err
+	}
+	*s = list
+	return nil
 }
 
 // Ext is the extension Input is linted as, dot included.
@@ -87,7 +105,7 @@ func (c Case) validate(seen map[string]bool) error {
 
 	// A case that asserts nothing passes whatever the rule does, which is
 	// worse than having no case at all: it reads as coverage.
-	if c.Want == nil && c.Contains == "" && len(c.Absent) == 0 {
+	if c.Want == nil && len(c.Contains) == 0 && len(c.Absent) == 0 {
 		return fmt.Errorf("%s: needs one of `want`, `contains`, or `absent`", where)
 	}
 

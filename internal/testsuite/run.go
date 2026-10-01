@@ -2,11 +2,13 @@ package testsuite
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/vale-cli/vale/v3/internal/core"
 	"github.com/vale-cli/vale/v3/internal/lint"
+	"github.com/vale-cli/vale/v3/internal/system"
 )
 
 // A Result is what running one Case produced.
@@ -41,11 +43,29 @@ type Runner struct {
 	// is fine: isolation never needed one before and still doesn't.
 	paths    []string
 	pathsSet bool
+
+	// Install puts packages into a StylesPath the way `vale sync` does. With
+	// it, a package's own `Packages` are installed for its isolated cases, so
+	// a rule that extends Std resolves without a synced project.
+	Install func(pkgs []string, styles string) error
+
+	// deps holds the extra search paths found for each package root, and
+	// temp the directories Install wrote into.
+	deps map[string][]string
+	temp []string
 }
 
 // NewRunner prepares to run cases against the configuration in `flags`.
 func NewRunner(flags *core.CLIFlags) *Runner {
-	return &Runner{flags: flags}
+	return &Runner{flags: flags, deps: map[string][]string{}}
+}
+
+// Close removes the packages installed for the run.
+func (r *Runner) Close() {
+	for _, dir := range r.temp {
+		_ = os.RemoveAll(dir)
+	}
+	r.temp = nil
 }
 
 // Run lints one case and compares what came back.
@@ -85,7 +105,11 @@ func (r *Runner) lint(c Case) (string, error) {
 // linterFor returns the linter a case runs under.
 func (r *Runner) linterFor(c Case) (*lint.Linter, error) {
 	if c.Rule != "" {
-		return isolate(c, r.searchPaths())
+		search, err := r.isolatedSearch(c)
+		if err != nil {
+			return nil, err
+		}
+		return isolate(c, search)
 	}
 
 	if r.project == nil {
@@ -114,6 +138,103 @@ func (r *Runner) searchPaths() []string {
 		}
 	}
 	return r.paths
+}
+
+// isolatedSearch orders the search paths for an isolated case: installed
+// dependencies first, then the project's paths, and the rule's own package
+// last, since the last path is the StylesPath its dictionaries are read from.
+func (r *Runner) isolatedSearch(c Case) ([]string, error) {
+	pkg, err := r.packagePaths(c)
+	if err != nil || len(pkg) == 0 {
+		return r.searchPaths(), err
+	}
+
+	own := pkg[0]
+	search := append([]string{}, pkg[1:]...)
+	for _, sp := range r.searchPaths() {
+		if abs, aErr := filepath.Abs(sp); aErr != nil || abs != own {
+			search = append(search, sp)
+		}
+	}
+	return append(search, own), nil
+}
+
+// packagePaths returns the search paths a rule's package brings: its own
+// `styles` directory first, then a StylesPath holding the packages its
+// `.vale.ini` declares that the search paths don't already have. A package
+// root is the nearest directory above the rule with both a `.vale.ini` and a
+// `styles` directory, the layout `vale sync` installs.
+func (r *Runner) packagePaths(c Case) ([]string, error) {
+	rule := c.Rule
+	if !filepath.IsAbs(rule) {
+		rule = filepath.Join(filepath.Dir(c.Path), rule)
+	}
+	rule, err := filepath.Abs(rule)
+	if err != nil {
+		return nil, err
+	}
+
+	root := packageRoot(filepath.Dir(rule))
+	if root == "" {
+		return nil, nil
+	} else if paths, ok := r.deps[root]; ok {
+		return paths, nil
+	}
+
+	styles := filepath.Join(root, "styles")
+	paths := []string{styles}
+
+	pkgs, err := core.GetPackages(filepath.Join(root, ".vale.ini"))
+	if err != nil {
+		return nil, err
+	}
+
+	var missing []string
+	for _, pkg := range pkgs {
+		if !onPath(system.FileNameWithoutExt(pkg), append([]string{styles}, r.searchPaths()...)) {
+			missing = append(missing, pkg)
+		}
+	}
+
+	if len(missing) > 0 && r.Install != nil {
+		dir, tErr := os.MkdirTemp("", "vale-test")
+		if tErr != nil {
+			return nil, tErr
+		}
+		r.temp = append(r.temp, dir)
+		if err = r.Install(missing, dir); err != nil {
+			return nil, err
+		}
+		paths = append(paths, dir)
+	}
+
+	r.deps[root] = paths
+	return paths, nil
+}
+
+// packageRoot walks up from dir to the nearest package root, or "".
+func packageRoot(dir string) string {
+	for {
+		if system.FileExists(filepath.Join(dir, ".vale.ini")) &&
+			system.IsDir(filepath.Join(dir, "styles")) {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
+// onPath reports whether a style named name is installed on a search path.
+func onPath(name string, search []string) bool {
+	for _, sp := range search {
+		if system.IsDir(filepath.Join(sp, name)) {
+			return true
+		}
+	}
+	return false
 }
 
 // isolate builds a linter holding one rule and nothing else.
@@ -211,8 +332,10 @@ func compare(c Case, got string) string {
 		}
 	}
 
-	if c.Contains != "" && !strings.Contains(got, c.Contains) {
-		return fmt.Sprintf("output does not contain %q", c.Contains)
+	for _, want := range c.Contains {
+		if !strings.Contains(got, want) {
+			return fmt.Sprintf("output does not contain %q", want)
+		}
 	}
 
 	for _, absent := range c.Absent {
