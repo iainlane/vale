@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -129,7 +131,7 @@ func Load(path string) ([]Case, error) {
 	if core.IsTestFile(filepath.Base(path)) {
 		var cases []Case
 		if err = yaml.Unmarshal(b, &cases); err != nil {
-			return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
+			return nil, yamlError(path, err)
 		}
 		return finish(cases, path, "")
 	}
@@ -139,9 +141,14 @@ func Load(path string) ([]Case, error) {
 		Tests   []Case `yaml:"tests"`
 	}
 	if uErr := yaml.Unmarshal(b, &rule); uErr != nil {
-		// Not even a mapping -- a stray sequence, or YAML in name only. That
-		// is a fact about the file, not a failure of the run.
-		return nil, nil //nolint:nilerr // foreign YAML is skipped, not failed
+		// A rule carrying cases that doesn't parse is a mistake in it -- an
+		// unquoted `input: Note: this`, say -- and skipping it would drop
+		// its cases from the run unannounced. Anything else that doesn't
+		// parse isn't ours: `.eslintrc.yml` has an `extends` too.
+		if ruleKey.Match(b) && testsKey.Match(b) {
+			return nil, yamlError(path, uErr)
+		}
+		return nil, nil
 	}
 	if rule.Extends == "" || len(rule.Tests) == 0 {
 		return nil, nil
@@ -150,6 +157,22 @@ func Load(path string) ([]Case, error) {
 	// An in-source case tests the rule it lives in: `rule` defaults to the
 	// file itself, which also makes it isolated -- the doctest reading.
 	return finish(rule.Tests, path, filepath.Base(path))
+}
+
+var (
+	ruleKey  = regexp.MustCompile(`(?m)^extends:`)
+	testsKey = regexp.MustCompile(`(?m)^tests:`)
+	yamlLine = regexp.MustCompile(`^yaml: line (\d+): `)
+)
+
+// yamlError places a YAML error at the line the parser names.
+func yamlError(path string, err error) error {
+	m := yamlLine.FindStringSubmatch(err.Error())
+	if m == nil {
+		return core.NewE201FromPosition(err.Error(), path, 1)
+	}
+	line, _ := strconv.Atoi(m[1])
+	return core.NewE201FromPosition(strings.TrimPrefix(err.Error(), m[0]), path, line)
 }
 
 func finish(cases []Case, path, defaultRule string) ([]Case, error) {

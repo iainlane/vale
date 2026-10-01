@@ -324,3 +324,26 @@ func TestStrings(t *testing.T) {
 		t.Errorf("contains = %q, absent = %q", c.Contains, c.Absent)
 	}
 }
+
+// TestLoadUnparsable fails a rule with cases that doesn't parse, at the line
+// YAML names, and still skips foreign YAML that doesn't.
+func TestLoadUnparsable(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(src), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+
+	rule := write("Rule.yml", "extends: existence\nmessage: x\ntests:\n  - name: a\n    input: Note: x\n    want: ''\n")
+	if _, err := Load(rule); err == nil || !strings.Contains(err.Error(), "Rule.yml:5:") {
+		t.Errorf("Load(rule) = %v; want an error at line 5", err)
+	}
+
+	eslint := write(".eslintrc.yml", "extends: recommended\nrules:\n  bad: [\n")
+	if cases, err := Load(eslint); err != nil || cases != nil {
+		t.Errorf("Load(.eslintrc.yml) = %v, %v; want it skipped", cases, err)
+	}
+}

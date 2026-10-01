@@ -323,3 +323,37 @@ cases:
     exit: 2
     contains: |
       1 passed, 1 failed
+
+  - name: a rule's cases that don't parse
+    about: "an unquoted `input: Note: this` broke the YAML, and the file was
+      skipped as foreign, so its cases vanished from the run unannounced"
+    files:
+      styles/T/Colon.yml: |
+        extends: existence
+        message: "'%s'"
+        tokens:
+          - really
+        tests:
+          - name: never parses
+            input: Note: really
+            contains: T.Colon
+    args: --output=line test styles/T/Colon.yml
+    exit: 2
+    contains: |
+      styles/T/Colon.yml:7:E201:mapping values are not allowed in this context
+
+  - name: foreign YAML that doesn't parse
+    about: "a file that isn't a rule with cases is still skipped, even with an
+      `extends` of its own"
+    files:
+      .eslintrc.yml: |
+        extends: recommended
+        rules:
+          bad: [
+      styles/T/Weasel.test.yml: |
+        - name: flags a weasel word
+          input: We really need this.
+          contains: T.Weasel
+    args: test
+    exit: 0
+    contains: 1 passed, 0 failed
