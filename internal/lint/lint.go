@@ -250,9 +250,9 @@ func (l *Linter) lintFile(src string) lintResult {
 	switch {
 	case err != nil:
 		return lintResult{err: err}
-	case len(file.Checks) == 0 && len(file.BaseStyles) == 0 &&
-		len(l.Manager.Config.GBaseStyles) == 0 && len(l.Manager.Config.GChecks) == 0:
-		// There's nothing to do; bail early.
+	case l.runsNothing(file):
+		// No rule can run here -- `BasedOnStyles =` in a section that
+		// matched, say -- so the file isn't parsed at all.
 		return lintResult{file: file}
 	}
 
@@ -344,6 +344,26 @@ func (l *Linter) lintFile(src string) lintResult {
 	}
 
 	return lintResult{file, err}
+}
+
+// runsNothing reports whether no rule can run for f: it bases on no style,
+// and no rule is switched on by name, in a section or globally. It errs
+// toward false; shouldRun has the final say on each rule.
+func (l *Linter) runsNothing(f *core.File) bool {
+	if len(f.BaseStyles) > 0 {
+		return false
+	}
+	for _, on := range f.Checks {
+		if on {
+			return false
+		}
+	}
+	for k, on := range l.Manager.Config.GChecks {
+		if v, set := f.Checks[k]; on && !f.Unset[k] && (!set || v) {
+			return false
+		}
+	}
+	return true
 }
 
 // lintProse segments blk and runs every applicable rule over the results.
