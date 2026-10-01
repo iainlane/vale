@@ -143,7 +143,10 @@ func (l *Linter) lintHTMLTokens(f *core.File, raw []byte, offset int) error { //
 			inBlock = true
 			f.Metrics[txt]++
 			walker.count(txt)
-		} else if inBlock && (core.StringInSlice(txt, skipTags) || closed) {
+		} else if inBlock && (closed || tokt == html.EndTagToken &&
+			!core.StringInSlice(txt, inlineTags) && core.StringInSlice(txt, skipTags)) {
+			// Only a block's own end tag closes it: the `<code>` inside a
+			// `<pre>` must not, when both are skipped (#1198).
 			inBlock = false
 			if closed {
 				walker.close()

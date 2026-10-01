@@ -203,6 +203,45 @@ cases:
     want: |
       test.md:5:11:T.Contractions:Use 'where's' instead of 'where is'.
 
+  - name: skip-pre-code
+    about: "#1198 -- with both `pre` and `code` skipped, the `<code>` inside a
+      fenced block's `<pre>` doesn't end the skip, and neither does text that
+      reads `pre`"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        SkippedScopes = script, style, pre, code
+
+        [*.md]
+        BasedOnStyles = T
+      styles/T/Semicolon.yml: |
+        extends: existence
+        message: "Semicolon found."
+        level: warning
+        nonword: true
+        tokens:
+          - ';'
+      test.md: |
+        # Title
+
+        Prose with `inline; code` and a fenced block:
+
+        ```json
+        { "a": 1; "b": 2 }
+        ```
+
+        ```text
+        pre
+        a; b
+        ```
+
+        Prose after the block; with a semicolon.
+    args: test.md
+    exit: 0
+    want: |
+      test.md:14:22:T.Semicolon:Semicolon found.
+
   - name: inline-spacing
     about: "#1111, #1119. The adoc headings are #502: a token that markup
       extraction introduced fails the strict threshold, and the alert is placed
