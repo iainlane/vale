@@ -59,6 +59,24 @@ cases:
       live.md:6:9:T.W:'really'
       live.md:6:25:T.Passive:passive 'was written'
 
+  - name: NONE
+    about: "`BasedOnStyles = NONE` is the spelled-out empty value, and clears a
+      style `[*]` set too"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*]
+        BasedOnStyles = T
+
+        [*.md if .Meta.published == false]
+        BasedOnStyles = NONE
+    args: --output=line draft.md live.md
+    exit: 1
+    want: |
+      live.md:6:9:T.W:'really'
+      live.md:6:25:T.Passive:passive 'was written'
+
   - name: a lighter style
     about: a condition does more than skip -- drafts keep one rule and lose
       the other

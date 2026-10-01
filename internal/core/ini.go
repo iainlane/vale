@@ -235,6 +235,24 @@ func lastValue(key *ini.Key) string {
 // follows BasedOnStyles and its own level again.
 const unsetValue = "UNSET"
 
+// noneValue is `BasedOnStyles = NONE`, the spelled-out form of an empty
+// value: no styles, and nothing inherited.
+const noneValue = "NONE"
+
+// baseStyles reads a BasedOnStyles key. Its values arrive merged across the
+// configuration's layers, so NONE clears whatever came before it and the
+// last layer to say NONE wins.
+func baseStyles(key *ini.Key) []string {
+	values := key.StringsWithShadows(",")
+	for i := len(values) - 1; i >= 0; i-- {
+		if strings.TrimSpace(values[i]) == noneValue {
+			values = values[i+1:]
+			break
+		}
+	}
+	return mergeValues(values)
+}
+
 func validateLevel(key, val string, levels map[string]string) bool {
 	options := []string{"YES", "suggestion", "warning", "error"}
 	if val == "NO" || !StringInSlice(val, options) {
@@ -271,7 +289,7 @@ var syntaxOpts = map[string]func(string, *ini.Section, *Config) error{
 		} else if _, found := cfg.SecToPat[lbl]; !found {
 			cfg.SecToPat[lbl] = pat
 		}
-		sStyles := mergeValues(sec.Key("BasedOnStyles").StringsWithShadows(","))
+		sStyles := baseStyles(sec.Key("BasedOnStyles"))
 
 		cfg.Styles = append(cfg.Styles, sStyles...)
 		cfg.StyleKeys = append(cfg.StyleKeys, lbl)
@@ -335,7 +353,7 @@ var syntaxOpts = map[string]func(string, *ini.Section, *Config) error{
 
 var globalOpts = map[string]func(*ini.Section, *Config){
 	"BasedOnStyles": func(sec *ini.Section, cfg *Config) {
-		cfg.GBaseStyles = mergeValues(sec.Key("BasedOnStyles").StringsWithShadows(","))
+		cfg.GBaseStyles = baseStyles(sec.Key("BasedOnStyles"))
 		cfg.Styles = append(cfg.Styles, cfg.GBaseStyles...)
 	},
 	"IgnorePatterns": func(sec *ini.Section, cfg *Config) {

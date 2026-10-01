@@ -518,3 +518,59 @@ BasedOnStyles = Vale
 		t.Error("the sphinx section was compiled as a file glob")
 	}
 }
+
+// TestBasedOnStylesNone reads `NONE` as an empty BasedOnStyles. Its values
+// arrive merged across layers, so NONE clears the layers before it.
+func TestBasedOnStylesNone(t *testing.T) {
+	cases := []struct {
+		desc          string
+		layers        [][]byte
+		global, local []string
+	}{
+		{
+			desc:   "NONE alone",
+			layers: [][]byte{[]byte("[*]\nBasedOnStyles = NONE\n\n[*.md]\nBasedOnStyles = NONE\n")},
+			global: []string{}, local: []string{},
+		},
+		{
+			desc: "a later layer's NONE clears an earlier one's styles",
+			layers: [][]byte{
+				[]byte("[*.md]\nBasedOnStyles = Vale\n"),
+				[]byte("[*.md]\nBasedOnStyles = NONE\n"),
+			},
+			global: []string{}, local: []string{},
+		},
+		{
+			desc: "a later layer's styles follow an earlier NONE",
+			layers: [][]byte{
+				[]byte("[*.md]\nBasedOnStyles = NONE\n"),
+				[]byte("[*.md]\nBasedOnStyles = House\n"),
+			},
+			global: []string{}, local: []string{"House"},
+		},
+	}
+	for _, c := range cases {
+		others := make([]interface{}, 0, len(c.layers)-1)
+		for _, l := range c.layers[1:] {
+			others = append(others, l)
+		}
+		uCfg, err := shadowLoad(c.layers[0], others...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		conf, err := NewConfig(&CLIFlags{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = processConfig(uCfg, conf, false); err != nil {
+			t.Fatal(err)
+		}
+		if got := conf.GBaseStyles; len(got) != len(c.global) {
+			t.Errorf("%s: [*] = %v, want %v", c.desc, got, c.global)
+		}
+		got, declared := conf.SBaseStyles["*.md"]
+		if !declared || strings.Join(got, ",") != strings.Join(c.local, ",") {
+			t.Errorf("%s: [*.md] = %v (declared %v), want %v", c.desc, got, declared, c.local)
+		}
+	}
+}
