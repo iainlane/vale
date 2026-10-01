@@ -3,6 +3,7 @@ package lint
 import (
 	"bytes"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"golang.org/x/net/html"
@@ -272,6 +273,11 @@ func (l *Linter) lintHTMLTokens(f *core.File, raw []byte, offset int) error { //
 				// the source put whitespace there: `Text — **bold**` keeps
 				// its space, or a rule asking for one reports `—b` (#1177).
 				if strings.HasPrefix(txt, " ") && trailing == "" && endsWithTightBoundary(buf) {
+					txt = txt[1:]
+				}
+				// A non-breaking space before the markup already separates
+				// the two, so the padding would double it (#1197).
+				if strings.HasPrefix(txt, " ") && endsWithUnicodeSpace(buf) {
 					txt = txt[1:]
 				}
 				// Record where this run came from before it loses its identity
@@ -659,6 +665,13 @@ func endsWithTightBoundary(buf *bytes.Buffer) bool {
 	default:
 		return false
 	}
+}
+
+// endsWithUnicodeSpace reports whether the buffer ends with a non-ASCII space,
+// such as U+00A0 or U+202F, which `walk` keeps as text.
+func endsWithUnicodeSpace(buf *bytes.Buffer) bool {
+	r, _ := utf8.DecodeLastRune(buf.Bytes())
+	return r >= utf8.RuneSelf && unicode.IsSpace(r)
 }
 
 // leadingSpace returns the separator the source put before s: a newline for a

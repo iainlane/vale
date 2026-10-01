@@ -280,6 +280,20 @@ cases:
       test.md:13:5:Test.Dashes:Remove the spaces around the dash.
       test.md:15:5:Test.Dashes:Remove the spaces around the dash.
 
+  - name: inline-nbsp
+    about: "A non-breaking or narrow space beside inline markup reaches the
+      rules, and words after a link don't fuse (#1197)."
+    dir: misc/nbsp
+    args: .
+    exit: 1
+    want: |
+      test.md:1:2:Test.Space:' '
+      test.md:1:7:Test.Space:' '
+      test.md:3:2:Test.Space:' '
+      test.md:3:30:Test.Space:' '
+      test.md:5:2:Test.Space:' '
+      test.md:5:30:Test.Space:' '
+
   - name: spelling
     dir: spelling
     args: .

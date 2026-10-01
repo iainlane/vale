@@ -1,6 +1,30 @@
 package lint
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
+
+// TestEndsWithUnicodeSpace covers the spaces `walk` keeps as text (#1197).
+func TestEndsWithUnicodeSpace(t *testing.T) {
+	cases := []struct {
+		buf  string
+		want bool
+	}{
+		{"", false},
+		{"a", false},
+		{"a ", false},
+		{"a\n", false},
+		{"a ", true},
+		{"a ", true},
+		{"a—", false},
+	}
+	for _, c := range cases {
+		if got := endsWithUnicodeSpace(bytes.NewBufferString(c.buf)); got != c.want {
+			t.Errorf("endsWithUnicodeSpace(%q) = %v, want %v", c.buf, got, c.want)
+		}
+	}
+}
 
 func TestLeadingSpace(t *testing.T) {
 	cases := []struct {

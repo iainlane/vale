@@ -617,10 +617,12 @@ func (w *walker) sourceOffset(i int) int {
 	return -1
 }
 
+// walk trims only ASCII whitespace: a non-breaking or narrow space beside
+// inline markup is text the rules should see, not a separator (#1197).
 func (w *walker) walk() (html.TokenType, html.Token, string) {
 	tokt := w.z.Next()
 	tok := w.z.Token()
-	return tokt, tok, html.UnescapeString(strings.TrimSpace(tok.Data))
+	return tokt, tok, html.UnescapeString(strings.Trim(tok.Data, " \t\n\r\f\v"))
 }
 
 func (w *walker) replaceToks(tok html.Token) {

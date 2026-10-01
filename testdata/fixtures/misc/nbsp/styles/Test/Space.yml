@@ -1,0 +1,6 @@
+extends: existence
+message: "'%s'"
+level: error
+nonword: true
+tokens:
+  - '\x{00A0}|\x{202F}|linkb'
