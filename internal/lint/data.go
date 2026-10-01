@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/vale-cli/vale/v3/internal/core"
-	"github.com/vale-cli/vale/v3/internal/glob"
 	"github.com/vale-cli/vale/v3/internal/lint/code"
 	"github.com/vale-cli/vale/v3/internal/nlp"
 )
@@ -21,7 +20,7 @@ func (l *Linter) hasView(f *core.File) bool {
 		if view.Engine == "tree-sitter" {
 			continue
 		}
-		if sec, err := glob.Compile(syntax); err == nil && sec.Match(f.Path) {
+		if l.Manager.Config.SectionApplies(syntax, f.Held, f.Path) {
 			return true
 		}
 	}
@@ -71,7 +70,7 @@ func (l *Linter) hasCodeView(f *core.File) bool {
 		if view.Engine != "tree-sitter" {
 			continue
 		}
-		if sec, err := glob.Compile(syntax); err == nil && sec.Match(f.Path) {
+		if l.Manager.Config.SectionApplies(syntax, f.Held, f.Path) {
 			return true
 		}
 	}
@@ -83,10 +82,7 @@ func (l *Linter) lintData(f *core.File) error {
 		if view.Engine == "tree-sitter" {
 			continue
 		}
-		sec, err := glob.Compile(syntax)
-		if err != nil {
-			return err
-		} else if sec.Match(f.Path) {
+		if l.Manager.Config.SectionApplies(syntax, f.Held, f.Path) {
 			// The View says which values are prose. The file's comments
 			// are prose whatever it says, and are read as a source file's.
 			if cerr := l.lintDataComments(f); cerr != nil {

@@ -8,29 +8,25 @@ import (
 	"strings"
 
 	"github.com/vale-cli/vale/v3/internal/core"
-	"github.com/vale-cli/vale/v3/internal/glob"
 	"github.com/vale-cli/vale/v3/internal/lint/code"
 	"github.com/vale-cli/vale/v3/internal/nlp"
 )
 
-func updateQueries(f *core.File, views map[string]*core.View) ([]core.Scope, error) {
+func updateQueries(f *core.File, cfg *core.Config) []core.Scope {
 	var found []core.Scope
 
-	for syntax, view := range views {
+	for syntax, view := range cfg.Views {
 		if view.Engine != "tree-sitter" {
 			// A data View's selectors are not queries; it reads the file
 			// itself, and may hand a cell of it here as code.
 			continue
 		}
-		sec, err := glob.Compile(syntax)
-		if err != nil {
-			return nil, err
-		} else if sec.Match(f.Path) {
+		if cfg.SectionApplies(syntax, f.Held, f.Path) {
 			found = view.Scopes
 		}
 	}
 
-	return found, nil
+	return found
 }
 
 // skipsComment reports whether `IgnoredScopes` excludes a comment of this
@@ -52,10 +48,7 @@ func (l *Linter) lintCode(f *core.File) error {
 		return l.lintCodeOld(f)
 	}
 
-	found, err := updateQueries(f, l.Manager.Config.Views)
-	if err != nil {
-		return err
-	} else if len(found) > 0 {
+	if found := updateQueries(f, l.Manager.Config); len(found) > 0 {
 		lang.Queries = found
 	}
 

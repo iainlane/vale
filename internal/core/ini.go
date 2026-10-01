@@ -261,7 +261,8 @@ var syntaxOpts = map[string]func(string, *ini.Section, *Config) error{
 		return nil
 	},
 	"BasedOnStyles": func(lbl string, sec *ini.Section, cfg *Config) error {
-		pat, err := glob.Compile(lbl)
+		g, _ := SplitSection(lbl)
+		pat, err := glob.Compile(g)
 		if err != nil {
 			return NewE201FromTarget(
 				fmt.Sprintf("The glob pattern '%s' could not be compiled.", lbl),
@@ -621,11 +622,21 @@ func processConfig(uCfg *ini.File, cfg *Config, dry bool) (*ini.File, error) {
 			continue
 		}
 
-		pat, err := glob.Compile(sec)
+		// `[*.md if .Meta.draft]` applies to the files its glob matches for
+		// which its condition holds.
+		g, cond := SplitSection(sec)
+		pat, err := glob.Compile(g)
 		if err != nil {
 			return nil, err
 		}
 		cfg.SecToPat[sec] = pat
+		if cond != "" {
+			c, cErr := NewCondition(cond)
+			if cErr != nil {
+				return nil, NewE201FromTarget(fmt.Sprintf("[%s]: %s", sec, cErr), sec, cfg.RootINI)
+			}
+			cfg.SecToCond[sec] = c
+		}
 
 		syntaxMap := make(map[string]bool)
 		levelMap := make(map[string]string)

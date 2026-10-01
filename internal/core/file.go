@@ -48,6 +48,7 @@ type File struct {
 	Path       string            // the full path
 	NormedPath string            // the normalized path
 	Transform  string            // XLST transform
+	Held       map[string]bool   // the conditional sections whose `if` held
 	RealExt    string            // actual file extension
 	Checks     map[string]bool   // syntax-specific checks assigned in .vale
 	Unset      map[string]bool   // keys a section marked UNSET; no global setting applies
@@ -150,6 +151,13 @@ func NewFile(src string, config *Config) (*File, error) {
 	filepaths := []string{path}
 	normed := NormalizePath(path, config.Formats)
 
+	// A conditional section, `[*.md if .Meta.draft]`, applies only where its
+	// condition holds; every lookup below asks SectionApplies.
+	held, err := heldConditions(path, string(fbytes), config)
+	if err != nil {
+		return nil, NewE201FromPosition(err.Error(), path, 1)
+	}
+
 	baseStyles := config.GBaseStyles
 	checks := make(map[string]bool)
 	levels := make(map[string]string)
@@ -160,8 +168,7 @@ func NewFile(src string, config *Config) (*File, error) {
 	// wins -- for this file, and no other. See #965.
 	for _, fp := range filepaths {
 		for _, sec := range config.RuleKeys {
-			pat, found := config.SecToPat[sec]
-			if !found || !pat.Match(fp) {
+			if !config.SectionApplies(sec, held, fp) {
 				continue
 			}
 
@@ -206,7 +213,7 @@ func NewFile(src string, config *Config) (*File, error) {
 		lang = code
 	}
 	for _, sec := range config.RuleKeys {
-		if pat, found := config.SecToPat[sec]; found && pat.Match(path) {
+		if config.SectionApplies(sec, held, path) {
 			// Sections are visited in the order they were written, so a
 			// later one wins -- for this file, and no other. See #965.
 			if code, ok := config.FormatToLang[sec]; ok {
@@ -220,7 +227,7 @@ func NewFile(src string, config *Config) (*File, error) {
 		transform = p
 	}
 	for _, sec := range config.RuleKeys {
-		if pat, found := config.SecToPat[sec]; found && pat.Match(path) {
+		if config.SectionApplies(sec, held, path) {
 			// Sections are visited in the order they were written, so a
 			// later one wins -- for this file, and no other. See #965.
 			if p, ok := config.Stylesheets[sec]; ok {
@@ -241,7 +248,7 @@ func NewFile(src string, config *Config) (*File, error) {
 		BaseStyles: baseStyles, Checks: checks, Levels: levels, Unset: unset, Vocab: vocab,
 		Lines: lines, Content: content,
 		Comments: make(map[string]bool), history: make(map[string]int),
-		simple: config.Flags.Simple, Transform: transform,
+		simple: config.Flags.Simple, Transform: transform, Held: held,
 		limits: make(map[string]int), Path: path, Metrics: make(map[string]int),
 		NLP:    nlp.Info{Endpoint: config.NLPEndpoint, Lang: lang},
 		Lookup: lookup, NormedPath: normed,

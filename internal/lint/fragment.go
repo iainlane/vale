@@ -86,10 +86,7 @@ func (l *Linter) lintFragments(f *core.File) error {
 		return err
 	}
 
-	found, err := updateQueries(f, l.Manager.Config.Views)
-	if err != nil {
-		return err
-	} else if len(found) > 0 {
+	if found := updateQueries(f, l.Manager.Config); len(found) > 0 {
 		lang.Queries = found
 	}
 

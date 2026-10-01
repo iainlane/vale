@@ -233,8 +233,10 @@ type Config struct {
 
 	cache    *sync.Map            // what checks build from this configuration, by key
 	SecToPat map[string]glob.Glob `json:"-"`
-	Styles   []string             `json:"-"`
-	Views    map[string]*View     `json:"-"`
+	// SecToCond holds the condition of a section written `[glob if expr]`.
+	SecToCond map[string]*Condition `json:"-"`
+	Styles    []string              `json:"-"`
+	Views     map[string]*View      `json:"-"`
 
 	// Scopes are the named scopes found under `config/scopes`, by name.
 	Scopes       map[string]string `json:"-"`
@@ -270,6 +272,7 @@ func NewConfig(flags *CLIFlags) (*Config, error) {
 	cfg.Vocabularies = make(map[string]*Vocabulary)
 	cfg.cache = &sync.Map{}
 	cfg.SecToPat = make(map[string]glob.Glob)
+	cfg.SecToCond = make(map[string]*Condition)
 	cfg.Stylesheets = make(map[string]string)
 	cfg.TokenIgnores = make(map[string][]string)
 	cfg.CommentDelimiters = make(map[string][2]string)

@@ -1,0 +1,148 @@
+# Conditional sections: `[glob if expr]` applies to the files its glob matches
+# for which the expression holds, read the way `--filter` reads a rule. An
+# empty `BasedOnStyles` in one skips the file. See #1063.
+name: conditional-sections
+
+files:
+  styles/T/W.yml: |
+    extends: existence
+    message: "'%s'"
+    level: error
+    tokens:
+      - really
+  styles/T/Passive.yml: |
+    extends: existence
+    message: "passive '%s'"
+    level: warning
+    tokens:
+      - was written
+  draft.md: |
+    ---
+    title: A draft
+    published: false
+    ---
+
+    This is really a draft that was written.
+  live.md: |
+    ---
+    title: Live
+    tags: [internal]
+    ---
+
+    This is really live and was written.
+  _partial.md: |
+    This is really a partial.
+  sub/draft.md: |
+    ---
+    published: false
+    ---
+
+    This is really nested.
+
+cases:
+  - name: skip by front matter
+    about: "Jekyll's `published: false`, from the issue. A file with no
+      `published` key reads it as nil, which isn't false."
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+
+        [*.md if .Meta.published == false]
+        BasedOnStyles =
+    args: --output=line .
+    exit: 1
+    want: |
+      _partial.md:1:9:T.W:'really'
+      live.md:6:9:T.W:'really'
+      live.md:6:25:T.Passive:passive 'was written'
+
+  - name: a lighter style
+    about: a condition does more than skip -- drafts keep one rule and lose
+      the other
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+
+        [*.md if .Meta.published == false]
+        T.Passive = NO
+    args: --output=line draft.md live.md
+    exit: 1
+    want: |
+      draft.md:6:9:T.W:'really'
+      live.md:6:9:T.W:'really'
+      live.md:6:25:T.Passive:passive 'was written'
+
+  - name: file fields
+    about: "`.Name`, and `.Path` relative to the .vale.ini"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+        T.Passive = NO
+
+        [*.md if .Name startsWith "_" or .Path startsWith "sub/"]
+        BasedOnStyles =
+    args: --output=line .
+    exit: 1
+    want: |
+      draft.md:6:9:T.W:'really'
+      live.md:6:9:T.W:'really'
+
+  - name: a list, and a missing field
+    about: "`in` over a list, and `.Meta.draft` alone on files with no
+      `draft`, which reads as false rather than failing `or` with nil"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+        T.Passive = NO
+
+        [*.md if "internal" in .Meta.tags or .Meta.draft]
+        BasedOnStyles =
+    args: --output=line _partial.md live.md
+    exit: 1
+    want: |
+      _partial.md:1:9:T.W:'really'
+
+  - name: section keys follow the condition
+    about: "a BlockIgnores in a conditional section applies only where the
+      condition holds"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+        T.Passive = NO
+
+        [*.md if .Meta.published == false]
+        BlockIgnores = (?s)(This is really.*?\.)
+    args: --output=line draft.md live.md
+    exit: 1
+    want: |
+      live.md:6:9:T.W:'really'
+
+  - name: a bad expression
+    about: a typo is a configuration error, reported before any file is read
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+
+        [*.md if .Meta.published ==]
+        BasedOnStyles =
+    args: --output=line draft.md
+    exit: 2
+    contains: "unexpected token"

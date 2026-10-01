@@ -9,7 +9,6 @@ import (
 	rx "github.com/vale-cli/vale/v3/internal/regex"
 
 	"github.com/vale-cli/vale/v3/internal/core"
-	"github.com/vale-cli/vale/v3/internal/glob"
 )
 
 var reFrontMatter = regexp.MustCompile(
@@ -35,6 +34,8 @@ type extensionConfig struct {
 	// the delimiters below. Real is its extension on disk, and RealPath its
 	// path.
 	Normed, Real, RealPath string
+	// Held is the conditional sections whose `if` held for the file.
+	Held map[string]bool
 }
 
 // match reports whether a config section applies to this file.
@@ -48,8 +49,8 @@ type extensionConfig struct {
 // The path is matched as well as the extension. Without it a section keyed on
 // one -- `[docs/*.md]` -- could never match, and its patterns were read,
 // compiled and then silently never applied. See #839.
-func (e extensionConfig) match(sec glob.Glob) bool {
-	return sec.Match(e.Real) || (e.RealPath != "" && sec.Match(e.RealPath))
+func (e extensionConfig) match(c *core.Config, sec string) bool {
+	return c.SectionApplies(sec, e.Held, e.Real, e.RealPath)
 }
 
 // blockDelimiters wrap a BlockIgnores match in the format's block code
@@ -79,10 +80,7 @@ func applyBlockPatterns(c *core.Config, exts extensionConfig, content string) (s
 	s := reFrontMatter.ReplaceAllString(content, block)
 
 	for syntax, regexes := range c.BlockIgnores {
-		sec, err := glob.Compile(syntax)
-		if err != nil {
-			return s, err
-		} else if exts.match(sec) {
+		if exts.match(c, syntax) {
 			for _, r := range regexes {
 				pat, errc := rx.Compile(r)
 				if errc != nil { //nolint:gocritic
@@ -98,6 +96,7 @@ func applyBlockPatterns(c *core.Config, exts extensionConfig, content string) (s
 						s = strings.Replace(s, c[0], sec, 1)
 					}
 				} else {
+					var err error
 					s, err = pat.Replace(s, block, 0, -1)
 					if err != nil {
 						return s, core.NewE201FromTarget(
@@ -134,10 +133,7 @@ func applyInlinePatterns(c *core.Config, exts extensionConfig, content string) (
 	}
 
 	for syntax, regexes := range c.TokenIgnores {
-		sec, err := glob.Compile(syntax)
-		if err != nil {
-			return content, err
-		} else if exts.match(sec) {
+		if exts.match(c, syntax) {
 			for _, r := range regexes {
 				pat, errc := rx.Compile(r)
 				if errc != nil {
@@ -147,6 +143,7 @@ func applyInlinePatterns(c *core.Config, exts extensionConfig, content string) (
 						c.Flags.Path,
 					)
 				}
+				var err error
 				content, err = pat.Replace(content, inline, 0, -1)
 				if err != nil {
 					return content, core.NewE201FromTarget(
@@ -166,10 +163,7 @@ func applyInlinePatterns(c *core.Config, exts extensionConfig, content string) (
 // comment-based controls using custom comment delimiters.
 func applyCommentPatterns(c *core.Config, exts extensionConfig, content string) (string, error) {
 	for syntax, delims := range c.CommentDelimiters {
-		sec, err := glob.Compile(syntax)
-		if err != nil {
-			return content, err
-		} else if exts.match(sec) {
+		if exts.match(c, syntax) {
 			// This field was not assigned, so do nothing.
 			if delims[0] == "" && delims[1] == "" {
 				return content, nil

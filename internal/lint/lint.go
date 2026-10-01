@@ -114,6 +114,7 @@ func (l *Linter) Transform(f *core.File) (string, error) {
 		Normed:   f.NormedExt,
 		Real:     f.RealExt,
 		RealPath: f.Path,
+		Held:     f.Held,
 	}
 
 	return applyPatterns(l.Manager.Config, exts, f.Content)
@@ -246,13 +247,13 @@ func (l *Linter) lintFile(src string) lintResult {
 	var err error
 
 	file, err := core.NewFile(src, l.Manager.Config)
-	if err != nil {
+	switch {
+	case err != nil:
 		return lintResult{err: err}
-	} else if len(file.Checks) == 0 && len(file.BaseStyles) == 0 {
-		if len(l.Manager.Config.GBaseStyles) == 0 && len(l.Manager.Config.GChecks) == 0 {
-			// There's nothing to do; bail early.
-			return lintResult{file: file}
-		}
+	case len(file.Checks) == 0 && len(file.BaseStyles) == 0 &&
+		len(l.Manager.Config.GBaseStyles) == 0 && len(l.Manager.Config.GChecks) == 0:
+		// There's nothing to do; bail early.
+		return lintResult{file: file}
 	}
 
 	// Determine what NLP tasks this particular file needs; the goal is to do
