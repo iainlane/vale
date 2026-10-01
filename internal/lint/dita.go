@@ -23,7 +23,7 @@ func (l *Linter) lintDITA(file *core.File) error {
 
 	dita := system.Which([]string{"dita", "dita.bat"})
 	if dita == "" {
-		return core.NewE100("lintDITA", errors.New("dita not found"))
+		return core.NewE100(file.Path, errors.New("dita not found; it's needed to read DITA"))
 	}
 
 	tempDir, err := os.MkdirTemp("", "dita-")

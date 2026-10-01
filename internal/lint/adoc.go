@@ -194,7 +194,7 @@ func (l *Linter) lintADoc(f *core.File) error {
 
 	exe := system.Which([]string{"asciidoctor"})
 	if exe == "" {
-		return core.NewE100("lintAdoc", errors.New("asciidoctor not found"))
+		return core.NewE100(f.Path, errors.New("asciidoctor not found; it's needed to read AsciiDoc"))
 	}
 
 	err = l.lintMetadata(f)

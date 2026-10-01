@@ -68,7 +68,7 @@ func from(provider ConfigSrc, src string, cfg *Config, dry bool) (*ini.File, err
 		return loadStdin(src, cfg, dry)
 	default:
 		return nil, NewE100(
-			"source/From", fmt.Errorf("unknown provider '%v'", provider))
+			"config", fmt.Errorf("unknown provider '%v'", provider))
 	}
 }
 
@@ -94,7 +94,7 @@ func validateFlags(cfg *Config) error {
 func loadStdin(src string, cfg *Config, dry bool) (*ini.File, error) {
 	uCfg, err := shadowLoad([]byte(src))
 	if err != nil {
-		return nil, NewE100("loadStdin", err)
+		return nil, NewE100("config", err)
 	}
 	return processConfig(uCfg, cfg, dry)
 }
@@ -127,7 +127,7 @@ func loadINI(cfg *Config, dry bool) (*ini.File, error) {
 
 	base, err := loadConfig(configNames)
 	if err != nil {
-		return nil, NewE100("loadINI/homedir", err)
+		return nil, NewE100("config", err)
 	}
 	cfg.RootINI = base
 
@@ -169,7 +169,7 @@ func loadINI(cfg *Config, dry bool) (*ini.File, error) {
 
 	uCfg, err = processSources(cfg, sources)
 	if err != nil {
-		return nil, NewE100("config pipeline failed", err)
+		return nil, NewE100("config", err)
 	}
 	return processConfig(uCfg, cfg, dry)
 }

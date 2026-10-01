@@ -44,7 +44,7 @@ func NewOccurrence(_ *core.Config, generic baseCheck, path string) (Occurrence, 
 	regex += `(?:` + rule.Token + `)`
 	re, err := rx.Compile(regex)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.Token)
 	}
 
 	rule.pattern = re

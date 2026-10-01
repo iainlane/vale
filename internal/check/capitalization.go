@@ -51,7 +51,7 @@ func NewCapitalization(cfg *core.Config, generic baseCheck, path string) (Capita
 
 	re, err := updateExceptions(rule.Exceptions, cfg.AcceptedTokens, rule.Vocab)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.Exceptions...)
 	}
 	rule.exceptRe = re
 
@@ -101,7 +101,7 @@ func NewCapitalization(cfg *core.Config, generic baseCheck, path string) (Capita
 	} else {
 		re2, errc := rx.Compile(rule.Match)
 		if errc != nil {
-			return rule, core.NewE201FromPosition(errc.Error(), path, 1)
+			return rule, patternError(errc, path, rule.Match)
 		}
 		rule.Check = func(s string, r *rx.Regexp) (string, bool) {
 			return re2.String(), re2.MatchStringStd(s) || isMatch(r, s)

@@ -152,7 +152,7 @@ func (l *Linter) Lint(input []string, pat string) ([]*core.File, error) {
 
 	gp, err := glob.NewGlob(pat)
 	if err != nil {
-		return linted, err
+		return linted, core.NewE100("--glob", err)
 	}
 
 	l.glob = &gp
@@ -373,7 +373,7 @@ func (l *Linter) runsNothing(f *core.File) bool {
 func (l *Linter) lintProse(f *core.File, blk nlp.Block, lines int, split bool) error {
 	blks, err := f.NLP.Compute(&blk, split)
 	if err != nil {
-		return core.NewE100("NLP.Compute", err)
+		return core.NewE100(f.Path, err)
 	}
 
 	// FIXME: This is required for paragraphs that lack a newline delimiter:

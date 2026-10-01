@@ -100,7 +100,7 @@ cases:
     args: "--glob=[a-]* ."
     exit: 2
     want: |
-      expected close range character
+      [--glob]:E100:expected close range character
 
   - name: no-config-found
     dir: ../../../..

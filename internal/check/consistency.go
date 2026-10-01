@@ -73,7 +73,7 @@ func NewConsistency(cfg *core.Config, generic baseCheck, path string) (Consisten
 
 		re, errc := rx.Compile(chkRE)
 		if errc != nil {
-			return rule, core.NewE201FromPosition(errc.Error(), path, 1)
+			return rule, patternError(errc, path, v1, v2)
 		}
 
 		rule.Extends = name

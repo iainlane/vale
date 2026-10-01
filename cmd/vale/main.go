@@ -53,7 +53,7 @@ func doLint(args []string, l *lint.Linter, glob string) ([]*core.File, error) {
 			status := looksLikeStdin(file)
 			if status == 1 {
 				return linted, core.NewE100(
-					"doLint",
+					"input",
 					fmt.Errorf("argument '%s' does not exist", file),
 				)
 			}
@@ -66,11 +66,11 @@ func doLint(args []string, l *lint.Linter, glob string) ([]*core.File, error) {
 		// $ cat file.md | vale
 		stdin, readErr := io.ReadAll(os.Stdin)
 		if readErr != nil {
-			return linted, core.NewE100("doLint", readErr)
+			return linted, core.NewE100("stdin", readErr)
 		}
 		linted, err = l.LintString(string(stdin))
 		if err != nil {
-			return linted, core.NewE100("doLint", err)
+			return linted, core.NewE100("stdin", err)
 		}
 	}
 

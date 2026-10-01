@@ -129,7 +129,7 @@ func (mgr *Manager) RuleForAlert(name string) string {
 func (mgr *Manager) AddRuleFromFile(name, path string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return core.NewE100("ReadFile", err)
+		return core.NewE100(path, err)
 	}
 	return mgr.addCheck(content, name, path)
 }

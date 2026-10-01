@@ -93,21 +93,21 @@ func NewConditional(cfg *core.Config, generic baseCheck, path string) (Condition
 
 	re, err := updateExceptions(rule.Exceptions, cfg.AcceptedTokens, rule.Vocab)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.Exceptions...)
 	}
 	rule.exceptRe = re
 	rule.phraseRe = buildPhraseRe(rule.Exceptions, cfg.AcceptedTokens, rule.Vocab)
 
 	re, err = rx.Compile(rule.Second)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.Second)
 	}
 	expression = append(expression, re)
 	rule.secondHasGroup = hasCaptureGroup(rule.Second)
 
 	re, err = rx.Compile(rule.First)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.First)
 	}
 	expression = append(expression, re)
 

@@ -26,11 +26,11 @@ func (l *Linter) lintXML(file *core.File) error {
 
 	xsltproc := system.Which([]string{"xsltproc", "xsltproc.exe"})
 	if xsltproc == "" {
-		return core.NewE100("lintXML", errors.New("xsltproc not found"))
+		return core.NewE100(file.Path, errors.New("xsltproc not found; it's needed to read XML"))
 	} else if file.Transform == "" {
 		return core.NewE100(
-			"lintXML",
-			errors.New("no XSLT transform provided"))
+			file.Path,
+			errors.New("no XSLT transform provided; set Transform in this file's section"))
 	}
 
 	args := append([]string{}, xsltArgs...)

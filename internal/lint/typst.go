@@ -57,7 +57,7 @@ func typstFastPath() []string {
 func (l *Linter) lintTypst(f *core.File) error {
 	exe := system.Which([]string{"typst2vast"})
 	if exe == "" {
-		return core.NewE100("lintTypst", errors.New("typst2vast not found"))
+		return core.NewE100(f.Path, errors.New("typst2vast not found; it's needed to read Typst"))
 	}
 
 	err := l.lintMetadata(f)

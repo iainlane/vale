@@ -173,7 +173,7 @@ func NewSequence(cfg *core.Config, generic baseCheck, path string) (Sequence, er
 		if token.Tag != "" {
 			tre, terr := rx.Compile(token.Tag)
 			if terr != nil {
-				return rule, core.NewE201FromPosition(terr.Error(), path, 1)
+				return rule, patternError(terr, path, token.Tag)
 			}
 			rule.Tokens[i].tagRe = tre
 		}
@@ -189,7 +189,7 @@ func NewSequence(cfg *core.Config, generic baseCheck, path string) (Sequence, er
 
 			re, errc := rx.Compile(regex)
 			if errc != nil {
-				return rule, core.NewE201FromPosition(errc.Error(), path, 1)
+				return rule, patternError(errc, path, token.Pattern)
 			}
 			rule.Tokens[i].re = re
 
@@ -200,7 +200,7 @@ func NewSequence(cfg *core.Config, generic baseCheck, path string) (Sequence, er
 
 			tre, terr := rx.Compile(anchored)
 			if terr != nil {
-				return rule, core.NewE201FromPosition(terr.Error(), path, 1)
+				return rule, patternError(terr, path, token.Pattern)
 			}
 			rule.Tokens[i].tokenRe = tre
 		}
@@ -224,7 +224,7 @@ func NewSequence(cfg *core.Config, generic baseCheck, path string) (Sequence, er
 	for _, pattern := range rule.Exceptions {
 		re, cerr := rx.Compile(pattern)
 		if cerr != nil {
-			return rule, core.NewE201FromPosition(cerr.Error(), path, 1)
+			return rule, patternError(cerr, path, pattern)
 		}
 		rule.exceptRe = append(rule.exceptRe, re)
 	}

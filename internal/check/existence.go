@@ -50,7 +50,7 @@ func NewExistence(cfg *core.Config, generic baseCheck, path string) (Existence, 
 	// See https://github.com/errata-ai/vale/issues/1058.
 	re, err := updateExceptions(rule.Exceptions, cfg.AcceptedTokens, rule.Vocab && !rule.Nonword)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, rule.Exceptions...)
 	}
 	rule.exceptRe = re
 	rule.phraseRe = buildPhraseRe(rule.Exceptions, cfg.AcceptedTokens, rule.Vocab && !rule.Nonword)
@@ -72,7 +72,7 @@ func NewExistence(cfg *core.Config, generic baseCheck, path string) (Existence, 
 
 	re, err = rx.Compile(regex)
 	if err != nil {
-		return rule, core.NewE201FromPosition(err.Error(), path, 1)
+		return rule, patternError(err, path, append(parsed, rule.Raw...)...)
 	}
 	rule.pattern = re
 	rule.groups = groupSpans(parsed, strings.Join(rule.Raw, ""), rule.Append)

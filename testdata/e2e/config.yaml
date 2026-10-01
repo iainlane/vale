@@ -81,6 +81,26 @@ cases:
     contains: |
       .vale.ini:2:E201:The StylesPath
 
+  - name: bad-pattern-points-at-token
+    about: "a pattern that doesn't compile is reported at its own line, quoted
+      as written rather than inside the pattern Vale builds around it"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+
+        [*.md]
+        BasedOnStyles = T
+      styles/T/Bad.yml: |
+        extends: existence
+        message: "'%s'"
+        tokens:
+          - fine
+          - '(unclosed'
+    args: --output=line test.md
+    exit: 2
+    contains: |
+      styles/T/Bad.yml:5:E201:Invalid pattern: missing closing ) in `(unclosed`
+
   - name: invalid-level-warns
     about: "a bad level and a misspelled key used to be ignored in silence"
     files:

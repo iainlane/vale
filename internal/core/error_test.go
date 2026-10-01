@@ -18,8 +18,8 @@ func TestAnnotateNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ctx.line != 0 || ctx.content != "" {
-		t.Errorf("annotate = line %d, content %q; want no excerpt", ctx.line, ctx.content)
+	if ctx.line != 0 || len(ctx.excerpt) != 0 {
+		t.Errorf("annotate = line %d, excerpt %v; want no excerpt", ctx.line, ctx.excerpt)
 	}
 }
 

@@ -19,14 +19,14 @@ func initPath(cfg *core.Config) error {
 	if !system.IsDir(stylesPath) {
 		if err := os.MkdirAll(stylesPath, os.ModePerm); err != nil {
 			e := fmt.Errorf("unable to initialize StylesPath (value = '%s')", stylesPath)
-			return core.NewE100("initPath", e)
+			return core.NewE100("sync", e)
 		}
 	}
 
 	// Remove any existing .vale-config directory.
 	err := os.RemoveAll(filepath.Join(stylesPath, core.PipeDir))
 	if err != nil {
-		return core.NewE100("initPath", err)
+		return core.NewE100("sync", err)
 	}
 
 	return nil

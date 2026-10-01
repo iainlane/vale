@@ -333,7 +333,7 @@ func rstProbe(exe string) []string {
 func (l *Linter) lintRST(f *core.File) error {
 	rst2html := rstExe()
 	if rst2html == "" {
-		return core.NewE100("lintRST", errors.New("rst2html not found"))
+		return core.NewE100(f.Path, errors.New("rst2html not found; it's needed to read reStructuredText"))
 	}
 
 	s, err := l.prepareRST(f)
