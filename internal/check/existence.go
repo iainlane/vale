@@ -16,6 +16,8 @@ type Existence struct {
 	Definition `mapstructure:",squash"`
 	Raw        []string
 	Tokens     []string
+	// `affix` names the affix file whose flags a `word/FLAGS` token uses.
+	Affix string
 	// `exceptions` (`array`): An array of strings to be ignored.
 	Exceptions []string
 	exceptRe   *rx.Regexp
@@ -38,6 +40,11 @@ func NewExistence(cfg *core.Config, generic baseCheck, path string) (Existence, 
 	}
 
 	err = checkScopes(rule.Scope, path)
+	if err != nil {
+		return rule, err
+	}
+
+	rule.Tokens, err = affixTokens(cfg, rule.Affix, rule.Tokens, path)
 	if err != nil {
 		return rule, err
 	}

@@ -21,6 +21,8 @@ type Substitution struct {
 	Exceptions []string
 	repl       []string
 	Swap       map[string]string
+	// `affix` names the affix file whose flags a `word/FLAGS` key uses.
+	Affix      string
 	exceptRe   *rx.Regexp
 	phraseRe   *rx.Regexp
 	pattern    *rx.Regexp
@@ -52,6 +54,17 @@ func NewSubstitution(cfg *core.Config, generic baseCheck, path string) (Substitu
 	err = checkScopes(rule.Scope, path)
 	if err != nil {
 		return rule, err
+	}
+	if rule.Affix != "" {
+		swap := make(map[string]string, len(rule.Swap))
+		for key, value := range rule.Swap {
+			expanded, aerr := affixTokens(cfg, rule.Affix, []string{key}, path)
+			if aerr != nil {
+				return rule, aerr
+			}
+			swap[expanded[0]] = value
+		}
+		rule.Swap = swap
 	}
 	tokens := ""
 

@@ -596,6 +596,202 @@ cases:
       docs/page.md:1:30:Vale.Spelling:Did you really mean 'Quxelate'?
       docs/page.md:1:44:Vale.Spelling:Did you really mean 'quxelate'?
 
+  - name: vocab-yaml
+    about: "#1089 -- a vocab.yml beside accept.txt: a term is literal and
+      enforces its case; `flags` expands Hunspell affix flags; `ignorecase`
+      accepts any case without a Terms alert; and `regex` makes the term a
+      pattern"
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Proj
+
+        [*]
+        BasedOnStyles = Vale
+      styles/config/vocabularies/Proj/accept.txt: |
+        Zorbblat
+      styles/config/vocabularies/Proj/vocab.yml: |
+        accept:
+          - Grix.io            # literal: the period is not a wildcard
+          - quxelate: {flags: S}
+          - flimbo:
+              ignorecase: true
+          - '[Bb]rizzle': {regex: true}
+        reject:
+          - k8s
+          - frobnar: {ignorecase: true}
+      page.md: |
+        Zorbblat and Grix.io ran two quxelates, then Flimbo and Brizzle.
+        Grixaio, grix.io, zorbblat, k8s, and FROBNAR are wrong.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:2:1:Vale.Spelling:Did you really mean 'Grixaio'?
+      page.md:2:10:Vale.Terms:Use 'Grix.io' instead of 'grix.io'.
+      page.md:2:19:Vale.Terms:Use 'Zorbblat' instead of 'zorbblat'.
+      page.md:2:29:Vale.Avoid:Avoid using 'k8s'.
+      page.md:2:38:Vale.Avoid:Avoid using 'FROBNAR'.
+
+  - name: vocab-yaml-affix-file
+    about: "#1089 -- `affix` names a project's own .aff, found in
+      config/dictionaries, whose flags `flags` then expands"
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Proj
+
+        [*]
+        BasedOnStyles = Vale
+      styles/config/dictionaries/proj.aff: |
+        SET UTF-8
+        SFX N Y 1
+        SFX N 0 n e
+      styles/config/vocabularies/Proj/vocab.yml: |
+        affix: proj
+        accept:
+          - Zorbblate: {flags: N}
+      page.md: |
+        One Zorbblate, two Zorbblaten, and no Zorbblates.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:39:Vale.Spelling:Did you really mean 'Zorbblates'?
+
+  - name: vocab-yaml-replacement
+    about: a vocab.yml entry that maps a term to a replacement stops the run
+      and points to a substitution rule, which is what suggests replacements
+    files:
+      _vale: |
+        StylesPath = styles
+        Vocab = Proj
+
+        [*]
+        BasedOnStyles = Vale
+      styles/config/vocabularies/Proj/vocab.yml: |
+        accept:
+          - Zorbblat
+        reject:
+          - whitelist: allowlist
+      page.md: |
+        Zorbblat.
+    args: --no-color page.md
+    exit: 2
+    want: |
+      styles/config/vocabularies/Proj/vocab.yml:4:E201:'whitelist' maps to 'allowlist', but a vocabulary entry maps to options; for a replacement, use a substitution rule
+
+  - name: vocab-yaml-unknown-flag
+    about: a `flags` option the default affix file doesn't define stops the
+      run at that line
+    files:
+      _vale: |
+        StylesPath = styles
+        Vocab = Proj
+
+        [*]
+        BasedOnStyles = Vale
+      styles/config/vocabularies/Proj/vocab.yml: |
+        accept:
+          - quxelate: {flags: S9}
+      page.md: |
+        Quxelate.
+    args: --no-color page.md
+    exit: 2
+    want: |
+      styles/config/vocabularies/Proj/vocab.yml:2:E201:'9' isn't an affix flag in the default dictionary
+
+  - name: rule-affix-flags
+    about: "#1091 -- a rule that sets `affix` reads each `word/FLAGS` word of
+      a token or swap key, alone or in a phrase, as every form its flags
+      name; an escaped slash is text, and the swap value is used as written"
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [*]
+        BasedOnStyles = T
+      styles/T/Utilize.yml: |
+        extends: substitution
+        message: "Use '%s' instead of '%s'."
+        affix: en_US-web
+        swap:
+          utilize/DGS: use
+      styles/T/Leverage.yml: |
+        extends: existence
+        message: "Avoid '%s'."
+        affix: en_US-web
+        tokens:
+          - leverage/DGS
+          - and\/or
+          - \bjump/DGS the gun
+      page.md: |
+        We utilize it, it utilizes them, and we utilized and leveraged both.
+        Leverages and leveraging and/or utilization are next.
+        They jumped the gun; we won't jump the gun or the gunwale.
+    args: page.md
+    exit: 0
+    want: |
+      page.md:1:4:T.Utilize:Use 'use' instead of 'utilize'.
+      page.md:1:19:T.Utilize:Use 'use' instead of 'utilizes'.
+      page.md:1:41:T.Utilize:Use 'use' instead of 'utilized'.
+      page.md:1:54:T.Leverage:Avoid 'leveraged'.
+      page.md:2:15:T.Leverage:Avoid 'leveraging'.
+      page.md:2:26:T.Leverage:Avoid 'and/or'.
+      page.md:3:6:T.Leverage:Avoid 'jumped the gun'.
+      page.md:3:31:T.Leverage:Avoid 'jump the gun'.
+
+  - name: rule-affix-file
+    about: a rule's `affix` names a project's own .aff, found in
+      config/dictionaries
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [*]
+        BasedOnStyles = T
+      styles/config/dictionaries/proj.aff: |
+        SET UTF-8
+        SFX N Y 1
+        SFX N 0 n e
+      styles/T/Zorb.yml: |
+        extends: existence
+        message: "Avoid '%s'."
+        affix: proj
+        tokens:
+          - Zorbblate/N
+      page.md: |
+        One Zorbblate, two Zorbblaten, and no Zorbblates.
+    args: page.md
+    exit: 0
+    want: |
+      page.md:1:5:T.Zorb:Avoid 'Zorbblate'.
+      page.md:1:20:T.Zorb:Avoid 'Zorbblaten'.
+
+  - name: rule-affix-unescaped-slash
+    about: in a rule that sets `affix`, a slash that isn't a flag separator
+      stops the run and says how to write it
+    files:
+      _vale: |
+        StylesPath = styles
+
+        [*]
+        BasedOnStyles = T
+      styles/T/Rule.yml: |
+        extends: existence
+        message: "Avoid '%s'."
+        affix: en_US-web
+        tokens:
+          - and/or
+      page.md: |
+        Text.
+    args: --no-color page.md
+    exit: 2
+    want: |
+      styles/T/Rule.yml:5:E201:'and/or': 'o' isn't an affix flag in the default dictionary; write a literal slash as '\/'
+
   - name: builtin-rule-params
     about: "a scalar setting reaches the built-in rules as it does one loaded
       from a file: `Vale.Spelling[split] = YES` checks an identifier's parts,

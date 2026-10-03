@@ -140,6 +140,8 @@ func loadVocabulary(root string, cfg *Config) (*Vocabulary, error) {
 			terms, rerr := readWordList(fp)
 			vocab.Rejected = append(vocab.Rejected, terms...)
 			return rerr
+		case vocabFiles[0], vocabFiles[1]:
+			return readVocabYAML(fp, vocab, cfg)
 		}
 		return nil
 	})
