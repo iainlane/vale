@@ -633,6 +633,56 @@ cases:
       page.md:2:29:Vale.Avoid:Avoid using 'k8s'.
       page.md:2:38:Vale.Avoid:Avoid using 'FROBNAR'.
 
+  - name: vocab-terms-punctuation
+    about: a term that starts or ends with punctuation is found by Terms,
+      which `\b` couldn't do beside a space, and not inside a longer word
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Proj
+
+        [*]
+        BasedOnStyles = Vale
+        Vale.Spelling = NO
+      styles/config/vocabularies/Proj/accept.txt: |
+        .NET
+        C#
+      styles/config/vocabularies/Proj/vocab.yml: |
+        accept:
+          - C++
+      page.md: |
+        We use c++, .net, and c# here.
+        C++x, a.net, and C++, .NET, and C# are fine.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:8:Vale.Terms:Use 'C++' instead of 'c++'.
+      page.md:1:13:Vale.Terms:Use '.NET' instead of '.net'.
+      page.md:1:23:Vale.Terms:Use 'C#' instead of 'c#'.
+
+  - name: vocab-terms-word-template
+    about: with a custom WordTemplate, Terms uses it as written rather than
+      its own boundaries
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Proj
+        WordTemplate = (?:^|\s)(?:%s)(?:\s|$)
+
+        [*]
+        BasedOnStyles = Vale
+        Vale.Spelling = NO
+      styles/config/vocabularies/Proj/accept.txt: |
+        Zorbblat
+      page.md: |
+        A zorbblat here, and zorbblat, there.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:3:Vale.Terms:Use 'Zorbblat' instead of 'zorbblat'.
+
   - name: vocab-yaml-affix-file
     about: "#1089 -- `affix` names a project's own .aff, found in
       config/dictionaries, whose flags `flags` then expands"

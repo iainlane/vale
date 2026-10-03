@@ -577,16 +577,29 @@ func (mgr *Manager) loadVocabRules() {
 
 // addTerms adds a Terms rule, which reports an accepted term in the wrong
 // case, from the given terms.
+//
+// Under the default word template, each term gets its own boundaries: not
+// preceded or followed by a word character. For a term that starts and ends
+// with one, that's `\b`; for `C++` or `.NET`, whose edges `\b` can't match
+// beside a space, it's what lets the term be found at all.
 func (mgr *Manager) addTerms(name string, terms []string) {
 	if len(terms) == 0 {
 		return
 	}
+	own := mgr.Config.WordTemplate == ""
 	swap := make(map[string]string, len(terms))
 	for _, term := range terms {
-		swap[termPattern(strings.ToLower(term))] = term
+		pattern := termPattern(strings.ToLower(term))
+		if own {
+			pattern = `(?<!\w)` + pattern + `(?!\w)`
+		}
+		swap[pattern] = term
 	}
 	vocab := cloneRule(defaultRules["Terms"])
 	vocab["name"], vocab["swap"] = name, swap
+	if own {
+		vocab["nonword"] = true
+	}
 	if level, ok := mgr.Config.RuleToLevel[name]; ok {
 		vocab["level"] = level
 	}
