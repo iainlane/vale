@@ -1173,3 +1173,20 @@ func newGoSpell(affFile, dicFile string) (*goSpell, error) {
 	h, err := newGoSpellReader(aff, dic)
 	return h, err
 }
+
+// recase returns the one spelling the dictionary has for word in another
+// case, such as GitHub for github. Two spellings that differ in case, or
+// none, return false.
+func (s *goSpell) recase(word string) (string, bool) {
+	found := ""
+	for _, f := range s.analyses(s.upperKey(word), true) {
+		if f.Word == word || s.isForbidden(f.Word) || !s.spell(f.Word) {
+			continue
+		}
+		if found != "" && found != f.Word {
+			return "", false
+		}
+		found = f.Word
+	}
+	return found, found != ""
+}

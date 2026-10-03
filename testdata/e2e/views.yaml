@@ -23,13 +23,13 @@ cases:
       ansible.yml:3:49:Vale.Spelling:Did you really mean 'Coent'?
       ansible.yml:5:60:Vale.Spelling:Did you really mean 'devlop'?
       ansible.yml:13:28:Vale.Spelling:Did you really mean 'purose'?
-      github-workflow.json:18:53:Vale.Spelling:Did you really mean 'pull_request'?
+      github-workflow.json:18:53:Vale.Spelling:'pull_request' looks like code; format it as code.
       github-workflow.json:228:256:Vale.Spelling:Did you really mean 'env'?
-      github-workflow.json:356:53:Vale.Spelling:Did you really mean 'pull_request'?
+      github-workflow.json:356:53:Vale.Spelling:'pull_request' looks like code; format it as code.
       github-workflow.json:497:213:Vale.Spelling:Did you really mean 'INPUT_'?
       github-workflow.json:543:293:Vale.Spelling:Did you really mean 'prereleased'?
-      github-workflow.json:617:89:Vale.Spelling:Did you really mean 'job_id'?
-      github-workflow.json:717:89:Vale.Spelling:Did you really mean 'job_id'?
+      github-workflow.json:617:89:Vale.Spelling:'job_id' looks like code; format it as code.
+      github-workflow.json:717:89:Vale.Spelling:'job_id' looks like code; format it as code.
       github-workflow.json:902:164:Vale.Spelling:Did you really mean 'redis'?
       issue1018.yml:3:26:Vale.Spelling:Did you really mean 'misspeling'?
       issue1018.yml:7:9:Vale.Spelling:Did you really mean 'misspeled'?

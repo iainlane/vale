@@ -34,7 +34,7 @@ cases:
     args: test.md
     exit: 1
     want: |
-      test.md:1:66:Vale.Spelling:Did you really mean 'javascript'?
+      test.md:1:66:Vale.Spelling:Use 'JavaScript' instead of 'javascript'.
       test.md:1:77:Vale.Spelling:Did you really mean 'agendize'?
 
   - name: no-styles-path-external
@@ -509,7 +509,7 @@ cases:
     exit: 1
     want: |
       docs/page.md:1:17:Vale.Spelling:Did you really mean 'typpo'?
-      test.md:1:66:Vale.Spelling:Did you really mean 'javascript'?
+      test.md:1:66:Vale.Spelling:Use 'JavaScript' instead of 'javascript'.
       test.md:1:77:Vale.Spelling:Did you really mean 'agendize'?
 
   - name: styles-path-named
@@ -526,7 +526,7 @@ cases:
     args: styles/Demo/README.md
     exit: 1
     want: |
-      styles/Demo/README.md:1:11:Vale.Spelling:Did you really mean 'readme'?
+      styles/Demo/README.md:1:11:Vale.Spelling:Use 'README' instead of 'readme'.
       styles/Demo/README.md:1:25:Vale.Spelling:Did you really mean 'typpo'?
 
   - name: rule-file-prose-only
@@ -682,6 +682,410 @@ cases:
     exit: 1
     want: |
       page.md:1:3:Vale.Terms:Use 'Zorbblat' instead of 'zorbblat'.
+
+  - name: spelling-casing-and-code
+    about: a misspelling the dictionary has in another case says so, with the
+      cased form as its fix; one shaped like an identifier says it looks like
+      code, with the format's inline code as its fix; a capitalized-only name,
+      a product name like vSphere, a real misspelling, and plain text keep the
+      usual alert
+    files:
+      _vale: |
+        MinAlertLevel = suggestion
+
+        [*]
+        BasedOnStyles = Vale
+      page.md: |
+        Push to github, then set apiVersion and created_at in kubernetes on vSphere, not githbu.
+      page.rst: |
+        Push to github, then set apiVersion and created_at in kubernetes on vSphere, not githbu.
+      page.txt: |
+        Push to github, then set apiVersion and created_at in kubernetes on vSphere, not githbu.
+    args: --output=JSON page.md page.rst page.txt
+    exit: 1
+    want: |
+      {
+        "page.md": [
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "GitHub"
+              ]
+            },
+            "Suggestions": [
+              "GitHub"
+            ],
+            "Span": [
+              9,
+              14
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Use 'GitHub' instead of 'github'.",
+            "Severity": "error",
+            "Match": "github",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "`apiVersion`"
+              ]
+            },
+            "Suggestions": [
+              "`apiVersion`"
+            ],
+            "Span": [
+              26,
+              35
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "'apiVersion' looks like code; format it as code.",
+            "Severity": "error",
+            "Match": "apiVersion",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "`created_at`"
+              ]
+            },
+            "Suggestions": [
+              "`created_at`"
+            ],
+            "Span": [
+              41,
+              50
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "'created_at' looks like code; format it as code.",
+            "Severity": "error",
+            "Match": "created_at",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              55,
+              64
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'kubernetes'?",
+            "Severity": "error",
+            "Match": "kubernetes",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              69,
+              75
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'vSphere'?",
+            "Severity": "error",
+            "Match": "vSphere",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              82,
+              87
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'githbu'?",
+            "Severity": "error",
+            "Match": "githbu",
+            "Line": 1
+          }
+        ],
+        "page.rst": [
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "GitHub"
+              ]
+            },
+            "Suggestions": [
+              "GitHub"
+            ],
+            "Span": [
+              9,
+              14
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Use 'GitHub' instead of 'github'.",
+            "Severity": "error",
+            "Match": "github",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "``apiVersion``"
+              ]
+            },
+            "Suggestions": [
+              "``apiVersion``"
+            ],
+            "Span": [
+              26,
+              35
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "'apiVersion' looks like code; format it as code.",
+            "Severity": "error",
+            "Match": "apiVersion",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "``created_at``"
+              ]
+            },
+            "Suggestions": [
+              "``created_at``"
+            ],
+            "Span": [
+              41,
+              50
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "'created_at' looks like code; format it as code.",
+            "Severity": "error",
+            "Match": "created_at",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              55,
+              64
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'kubernetes'?",
+            "Severity": "error",
+            "Match": "kubernetes",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              69,
+              75
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'vSphere'?",
+            "Severity": "error",
+            "Match": "vSphere",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              82,
+              87
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'githbu'?",
+            "Severity": "error",
+            "Match": "githbu",
+            "Line": 1
+          }
+        ],
+        "page.txt": [
+          {
+            "Action": {
+              "Name": "replace",
+              "Params": [
+                "GitHub"
+              ]
+            },
+            "Suggestions": [
+              "GitHub"
+            ],
+            "Span": [
+              9,
+              14
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Use 'GitHub' instead of 'github'.",
+            "Severity": "error",
+            "Match": "github",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              26,
+              35
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'apiVersion'?",
+            "Severity": "error",
+            "Match": "apiVersion",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              41,
+              50
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'created_at'?",
+            "Severity": "error",
+            "Match": "created_at",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              55,
+              64
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'kubernetes'?",
+            "Severity": "error",
+            "Match": "kubernetes",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              69,
+              75
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'vSphere'?",
+            "Severity": "error",
+            "Match": "vSphere",
+            "Line": 1
+          },
+          {
+            "Action": {
+              "Name": "suggest",
+              "Params": [
+                "spellings"
+              ]
+            },
+            "Suggestions": [],
+            "Span": [
+              82,
+              87
+            ],
+            "Check": "Vale.Spelling",
+            "Description": "",
+            "Link": "",
+            "Message": "Did you really mean 'githbu'?",
+            "Severity": "error",
+            "Match": "githbu",
+            "Line": 1
+          }
+        ]
+      }
 
   - name: vocab-yaml-affix-file
     about: "#1089 -- `affix` names a project's own .aff, found in

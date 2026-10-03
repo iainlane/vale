@@ -118,25 +118,25 @@ cases:
       test2.rst:111:56:Vale.Spelling:Did you really mean 'checkall'?
       test2.rst:126:11:Vale.Spelling:Did you really mean 'attr'?
       test2.rst:128:78:Vale.Spelling:Did you really mean 'href'?
-      test2.rst:129:11:Vale.Spelling:Did you really mean 'btnText'?
-      test2.rst:132:11:Vale.Spelling:Did you really mean 'iconClass'?
+      test2.rst:129:11:Vale.Spelling:'btnText' looks like code; format it as code.
+      test2.rst:132:11:Vale.Spelling:'iconClass' looks like code; format it as code.
       test2.rst:143:143:Vale.Spelling:Did you really mean 'wil'?
-      test2.rst:156:11:Vale.Spelling:Did you really mean 'confirmText'?
-      test2.rst:159:11:Vale.Spelling:Did you really mean 'confirmAction'?
-      test2.rst:162:11:Vale.Spelling:Did you really mean 'cancelText'?
-      test2.rst:165:11:Vale.Spelling:Did you really mean 'cancelCallback'?
+      test2.rst:156:11:Vale.Spelling:'confirmText' looks like code; format it as code.
+      test2.rst:159:11:Vale.Spelling:'confirmAction' looks like code; format it as code.
+      test2.rst:162:11:Vale.Spelling:'cancelText' looks like code; format it as code.
+      test2.rst:165:11:Vale.Spelling:'cancelCallback' looks like code; format it as code.
       test2.rst:167:11:Vale.Spelling:Did you really mean 'Mautic'?
-      test2.rst:167:29:Vale.Spelling:Did you really mean 'Javascript'?
-      test2.rst:168:11:Vale.Spelling:Did you really mean 'confirmCallback'?
+      test2.rst:167:29:Vale.Spelling:Use 'JavaScript' instead of 'Javascript'.
+      test2.rst:168:11:Vale.Spelling:'confirmCallback' looks like code; format it as code.
       test2.rst:170:11:Vale.Spelling:Did you really mean 'Mautic'?
-      test2.rst:170:29:Vale.Spelling:Did you really mean 'Javascript'?
+      test2.rst:170:29:Vale.Spelling:Use 'JavaScript' instead of 'Javascript'.
       test2.rst:171:11:Vale.Spelling:Did you really mean 'precheck'?
       test2.rst:173:11:Vale.Spelling:Did you really mean 'Mautic'?
-      test2.rst:173:29:Vale.Spelling:Did you really mean 'Javascript'?
-      test2.rst:174:11:Vale.Spelling:Did you really mean 'btnClass'?
-      test2.rst:177:11:Vale.Spelling:Did you really mean 'iconClass'?
+      test2.rst:173:29:Vale.Spelling:Use 'JavaScript' instead of 'Javascript'.
+      test2.rst:174:11:Vale.Spelling:'btnClass' looks like code; format it as code.
+      test2.rst:177:11:Vale.Spelling:'iconClass' looks like code; format it as code.
       test2.rst:183:11:Vale.Spelling:Did you really mean 'attr'?
-      test2.rst:230:58:Vale.Spelling:Did you really mean 'renderButtons'?
+      test2.rst:230:58:Vale.Spelling:'renderButtons' looks like code; format it as code.
 
   - name: token-ignores-path-scoped
     about: "#839 -- a section keyed on a path, not an extension, still applies

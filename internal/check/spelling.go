@@ -2,6 +2,7 @@ package check
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/mitchellh/mapstructure"
 	rx "github.com/vale-cli/vale/v3/internal/regex"
@@ -268,6 +270,7 @@ OUTER:
 			}
 		}
 		a := s.alert(word, offset, len(found))
+		s.explain(&a, word, found, f)
 		// The block knows where it is, so the word need not be searched
 		// for, which found an earlier copy of it or one in markup.
 		if at := blk.SourceOffset(offset); at >= 0 {
@@ -314,6 +317,59 @@ func (s Spelling) alert(word string, at, length int) core.Alert {
 		Link: s.Link, Match: word, Action: s.Action}
 	a.Message, a.Description = formatMessages(s.Message, s.Description, word)
 	return a
+}
+
+// inlineCode wraps text as inline code, by format.
+var inlineCode = map[string]string{
+	".md": "`%s`", ".mdx": "`%s`", ".myst": "`%s`", ".qmd": "`%s`", ".ipynb": "`%s`",
+	".adoc": "`%s`", ".typ": "`%s`", ".rst": "``%s``", ".org": "~%s~",
+	".html": "<code>%s</code>",
+}
+
+// identifierShape matches snake_case, and lowerCamel with two or more
+// leading lower-case letters: `apiVersion`, but not `vSphere` or `iPhone`,
+// which are names.
+var identifierShape = regexp.MustCompile(`^(?:[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+|[a-z]{2,}[A-Z][A-Za-z0-9]*)$`)
+
+// explain rewrites a misspelling alert when more is known about the word,
+// with a fix that is certain: the dictionary spells it in another case, or
+// it is shaped like an identifier in a format with inline code.
+func (s Spelling) explain(a *core.Alert, word, found string, f *core.File) {
+	if cased, ok := s.gs.Recase(word); ok && certainRecase(word, cased) {
+		a.Message = fmt.Sprintf("Use '%s' instead of '%s'.", cased, found)
+		a.Action = core.Action{Name: "replace", Params: []string{cased}}
+		a.Suggestions = a.Action.Params
+		return
+	}
+
+	if s.Split || f == nil || !identifierShape.MatchString(found) {
+		return
+	}
+	if wrap, ok := inlineCode[f.NormedExt]; ok {
+		code := fmt.Sprintf(wrap, found)
+		a.Message = fmt.Sprintf("'%s' looks like code; format it as code.", found)
+		a.Action = core.Action{Name: "replace", Params: []string{code}}
+		a.Suggestions = a.Action.Params
+	}
+}
+
+// certainRecase reports whether the dictionary's other-case spelling is a
+// fix to offer: one that adds capitals inside a word of three or more
+// letters with at most one, as in GitHub or JSON. A capitalized-only name
+// (Kubernetes) can't be told from a word in another language (los, Los),
+// and a word with more capitals (CNs) chose them.
+func certainRecase(word, cased string) bool {
+	upper := func(s string) int {
+		n := 0
+		for _, r := range s {
+			if unicode.IsUpper(r) {
+				n++
+			}
+		}
+		return n
+	}
+	inner := strings.IndexFunc(cased[1:], unicode.IsUpper) >= 0
+	return utf8.RuneCountInString(word) >= 3 && upper(word) <= 1 && upper(cased) > upper(word) && inner
 }
 
 // Fields provides access to the internal rule definition.

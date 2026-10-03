@@ -90,7 +90,7 @@ cases:
     args: .
     exit: 1
     want: |
-      test.md:16:1:Vale.Spelling:Did you really mean 'gitlab'?
+      test.md:16:1:Vale.Spelling:Use 'GitLab' instead of 'gitlab'.
       test.md:28:11:Vale.Spelling:Did you really mean 'typpo'?
       test.md:32:17:Vale.Spelling:Did you really mean 'gfm'?
       test.md:34:17:Vale.Spelling:Did you really mean 'remmark'?

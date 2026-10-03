@@ -82,6 +82,7 @@ func UsingDictionaryByPath(dic, aff string) CheckerOption {
 type Checker struct {
 	options  Options
 	checkers []*goSpell
+	recased  *sync.Map // word -> its other-case spelling, or ""
 }
 
 // NewChecker creates a spell checker from multiple
@@ -92,7 +93,7 @@ func NewChecker(options ...CheckerOption) (*Checker, error) {
 		applyOpt(&base)
 	}
 
-	checker := Checker{options: base}
+	checker := Checker{options: base, recased: &sync.Map{}}
 	for _, name := range base.names {
 		if err := checker.loadDic(name); err != nil {
 			return &checker, err
@@ -183,6 +184,24 @@ func (m *Checker) Spell(word string) bool {
 		}
 	}
 	return false
+}
+
+// Recase returns the spelling a dictionary has for word in another case,
+// when there is exactly one: GitHub for github.
+func (m *Checker) Recase(word string) (string, bool) {
+	if v, ok := m.recased.Load(word); ok {
+		cased := v.(string) //nolint:errcheck // only strings are stored
+		return cased, cased != ""
+	}
+	cased := ""
+	for _, checker := range m.checkers {
+		if c, ok := checker.recase(word); ok {
+			cased = c
+			break
+		}
+	}
+	m.recased.Store(word, cased)
+	return cased, cased != ""
 }
 
 // Suggest returns a list of suggestions for a given word.
