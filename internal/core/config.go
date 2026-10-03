@@ -216,6 +216,7 @@ type Config struct {
 	SLevels           map[string]map[string]string // Syntax-specific level changes
 	SUnsets           map[string][]string          // Keys a section marked UNSET
 	SVocab            map[string][]string          // Vocabularies a section names
+	StyleSources      map[string]string            // The file each section's BasedOnStyles comes from
 	Vocabularies      map[string]*Vocabulary       // Every vocabulary loaded, by name
 	SkippedScopes     []string                     // A list of HTML blocks to ignore
 	Stylesheets       map[string]string            // XSLT stylesheet

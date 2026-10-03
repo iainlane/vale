@@ -574,8 +574,42 @@ func processSources(cfg *Config, sources []string) (*ini.File, error) {
 
 	uCfg, err = shadowLoad(sources[0], s...)
 	cfg.Flags.Path = sources[len(sources)-1]
+	cfg.StyleSources = styleSources(sources)
 
 	return uCfg, err
+}
+
+// styleSources maps each section that sets BasedOnStyles to the last
+// configuration file that sets it there.
+func styleSources(sources []string) map[string]string {
+	options := ini.LoadOptions{Loose: true, AllowShadows: true, ChildSectionDelimiter: noChildSections}
+	out := map[string]string{}
+	for _, src := range sources {
+		f, err := ini.LoadSources(options, src)
+		if err != nil {
+			continue
+		}
+		for _, sec := range f.Sections() {
+			if sec.HasKey("BasedOnStyles") {
+				out[sec.Name()] = src
+			}
+		}
+	}
+	return out
+}
+
+// packageOf returns the package a configuration file came from, or "" for
+// one of the project's own: `vale sync` writes a package's `.vale.ini` to
+// `.vale-config/<n>-<Name>.ini`.
+func packageOf(path string) string {
+	if filepath.Base(filepath.Dir(path)) != PipeDir {
+		return ""
+	}
+	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	if _, rest, found := strings.Cut(name, "-"); found {
+		return rest
+	}
+	return name
 }
 
 // sphinxKeys are the keys a `[sphinx]` section may set: the directives whose

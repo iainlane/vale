@@ -175,28 +175,35 @@ func main() {
 		handleError(err)
 	}
 
+	// Documents that couldn't be linted are reported after the alerts of the
+	// rest, and the run exits as an error.
 	linted, err := doLint(args, linter, Flags.Glob)
-	if err != nil {
+	var docErrs lint.DocumentErrors
+	if err != nil && !errors.As(err, &docErrs) {
 		handleError(err)
 	}
 
-	if config.Flags.Counts && config.Flags.Output == "JSON" {
-		hasErrors := PrintJSONAlertsWithCounts(linted, countAlerts(linter.Manager, linted))
+	exit := func(hasErrors bool) {
+		for _, e := range docErrs {
+			ShowError(e, Flags.Output, os.Stderr)
+		}
 		stopProfiling()
-		if hasErrors && !Flags.NoExit {
+		switch {
+		case len(docErrs) > 0:
+			os.Exit(2)
+		case hasErrors && !Flags.NoExit:
 			os.Exit(1)
 		}
 		os.Exit(0)
+	}
+
+	if config.Flags.Counts && config.Flags.Output == "JSON" {
+		exit(PrintJSONAlertsWithCounts(linted, countAlerts(linter.Manager, linted)))
 	}
 
 	hasErrors, err := PrintAlerts(linted, config)
 	if err != nil {
 		handleError(err)
 	}
-
-	stopProfiling()
-	if hasErrors && !Flags.NoExit {
-		os.Exit(1)
-	}
-	os.Exit(0)
+	exit(hasErrors)
 }

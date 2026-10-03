@@ -84,6 +84,34 @@ type scopedRule struct {
 type lintResult struct {
 	file *core.File
 	err  error
+	path string // the document linted, for an error that is about it
+}
+
+// DocumentErrors are the documents a run couldn't lint, each with its own
+// error. Every other document was linted.
+type DocumentErrors []error
+
+func (e DocumentErrors) Error() string {
+	msgs := make([]string, len(e))
+	for i, err := range e {
+		msgs[i] = err.Error()
+	}
+	return strings.Join(msgs, "\n")
+}
+
+// documentError reports whether err is about the document at path, one it
+// couldn't read or parse, rather than about the configuration or a rule.
+func documentError(err error, path string) bool {
+	var ve *core.Error
+	if path == "" || !errors.As(err, &ve) {
+		return false
+	}
+	for _, p := range []string{ve.Path, ve.Context} {
+		if p != "" && filepath.Clean(p) == filepath.Clean(path) {
+			return true
+		}
+	}
+	return false
 }
 
 // NewLinter initializes a Linter.
@@ -169,13 +197,20 @@ func (l *Linter) Lint(input []string, pat string) ([]*core.File, error) {
 	l.prepareDITA(input)
 	defer func() { l.ditaHTML = nil }()
 
+	// A document that can't be read or parsed is reported, and the rest are
+	// still linted; anything else stops the run.
+	var docErrs DocumentErrors
 	for _, src := range input {
 		filesChan, errChan := l.lintFiles(done, src)
 
 		for result := range filesChan {
-			if result.err != nil {
+			switch {
+			case result.err != nil && documentError(result.err, result.path):
+				docErrs = append(docErrs, result.err)
+				continue
+			case result.err != nil:
 				return linted, result.err
-			} else if l.Manager.Config.Flags.Normalize {
+			case l.Manager.Config.Flags.Normalize:
 				result.file.Path = filepath.ToSlash(result.file.Path)
 			}
 			linted = append(linted, result.file)
@@ -186,7 +221,26 @@ func (l *Linter) Lint(input []string, pat string) ([]*core.File, error) {
 		}
 	}
 
+	if len(docErrs) > 0 {
+		// Files are linted concurrently, so their errors arrive in any order.
+		sort.SliceStable(docErrs, func(i, j int) bool {
+			return errorPath(docErrs[i]) < errorPath(docErrs[j])
+		})
+		return linted, docErrs
+	}
 	return linted, nil
+}
+
+// errorPath is the document an error from documentError is about.
+func errorPath(err error) string {
+	var ve *core.Error
+	if errors.As(err, &ve) {
+		if ve.Path != "" {
+			return ve.Path
+		}
+		return ve.Context
+	}
+	return ""
 }
 
 // lintFiles walks the `root` directory, creating a new goroutine to lint any
@@ -249,7 +303,7 @@ func (l *Linter) lintFile(src string) lintResult {
 	file, err := core.NewFile(src, l.Manager.Config)
 	switch {
 	case err != nil:
-		return lintResult{err: err}
+		return lintResult{err: err, path: src}
 	case l.runsNothing(file):
 		// No rule can run here -- `BasedOnStyles =` in a section that
 		// matched, say -- so the file isn't parsed at all.
@@ -343,7 +397,7 @@ func (l *Linter) lintFile(src string) lintResult {
 		file.MapAlertsToSource()
 	}
 
-	return lintResult{file, err}
+	return lintResult{file: file, err: err, path: src}
 }
 
 // runsNothing reports whether no rule can run for f: it bases on no style,

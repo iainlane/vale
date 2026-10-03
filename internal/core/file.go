@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/jdkato/prose/v3/summarize"
@@ -159,6 +161,7 @@ func NewFile(src string, config *Config) (*File, error) {
 	}
 
 	baseStyles := config.GBaseStyles
+	stylesFrom := "*" // the section baseStyles came from
 	checks := make(map[string]bool)
 	levels := make(map[string]string)
 	unset := make(map[string]bool)
@@ -176,7 +179,8 @@ func NewFile(src string, config *Config) (*File, error) {
 			}
 
 			if styles, declared := config.SBaseStyles[sec]; declared {
-				baseStyles = styles
+				warnDroppedStyles(config, stylesFrom, sec, baseStyles, styles)
+				baseStyles, stylesFrom = styles, sec
 				if len(styles) == 0 {
 					// `BasedOnStyles =` says nothing runs here: earlier
 					// sections no longer apply, and global settings are off.
@@ -897,4 +901,31 @@ func sentenceLengthSD(doc *summarize.Document) float64 {
 		sum += d * d
 	}
 	return math.Sqrt(sum / n)
+}
+
+// droppedWarned holds the pairs of sections warnDroppedStyles has reported.
+var droppedWarned sync.Map
+
+// warnDroppedStyles says, once per pair of sections, when a project's
+// section replaces styles a package's section turned on and leaves some
+// out: the package's own section is in a file the project never sees.
+func warnDroppedStyles(cfg *Config, from, to string, before, after []string) {
+	pkg := packageOf(cfg.StyleSources[from])
+	if pkg == "" || packageOf(cfg.StyleSources[to]) != "" || len(after) == 0 {
+		return
+	}
+	var dropped []string
+	for _, s := range before {
+		if !StringInSlice(s, after) {
+			dropped = append(dropped, s)
+		}
+	}
+	if len(dropped) == 0 {
+		return
+	}
+	if _, seen := droppedWarned.LoadOrStore(from+"\x00"+to, true); seen {
+		return
+	}
+	Warn(fmt.Sprintf("[%s] replaces the styles the %s package turns on for its files (%s). To keep them, list them too: BasedOnStyles = %s",
+		to, pkg, strings.Join(dropped, ", "), strings.Join(append(dropped, after...), ", ")))
 }

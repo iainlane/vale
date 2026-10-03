@@ -596,6 +596,68 @@ cases:
       docs/page.md:1:30:Vale.Spelling:Did you really mean 'Quxelate'?
       docs/page.md:1:44:Vale.Spelling:Did you really mean 'quxelate'?
 
+  - name: unreadable-document-continues
+    about: a document that can't be parsed is reported, the rest are still
+      linted, and the run exits as an error; it used to stop the run at the
+      first such file
+    files:
+      _vale: |
+        MinAlertLevel = suggestion
+
+        [*.md]
+        BasedOnStyles = Vale
+      a-broken.md: |
+        ---
+        title: [unclosed
+        ---
+
+        Text.
+      d-good.md: |
+        This is a speling mistake.
+    args: .
+    exit: 2
+    want: |
+      d-good.md:1:11:Vale.Spelling:Did you really mean 'speling'?
+      test.md:1:66:Vale.Spelling:Use 'JavaScript' instead of 'javascript'.
+      test.md:1:77:Vale.Spelling:Did you really mean 'agendize'?
+      a-broken.md:1:E201:yaml: line 1: did not find expected ',' or ']'
+
+  - name: package-styles-dropped
+    about: a project's section that replaces the styles a package turns on, and
+      leaves some out, says so once, naming what to list
+    files:
+      _vale: |
+        StylesPath = styles
+
+        [docs/**]
+        BasedOnStyles = Extra
+      styles/.vale-config/1-House.ini: |
+        [*.md]
+        BasedOnStyles = House
+      styles/House/Simply.yml: |
+        extends: existence
+        message: "Avoid '%s'."
+        level: error
+        tokens: [simply]
+      styles/Extra/Basically.yml: |
+        extends: existence
+        message: "Avoid '%s'."
+        level: error
+        tokens: [basically]
+      top.md: |
+        This is simply and basically fine.
+      docs/a.md: |
+        This is simply and basically fine.
+      docs/b.md: |
+        This is simply and basically fine.
+    args: top.md docs/a.md docs/b.md
+    exit: 1
+    want: |
+      W101 [docs/**] replaces the styles the House package turns on for its files (House). To keep them, list them too: BasedOnStyles = House, Extra
+      docs/a.md:1:20:Extra.Basically:Avoid 'basically'.
+      docs/b.md:1:20:Extra.Basically:Avoid 'basically'.
+      top.md:1:9:House.Simply:Avoid 'simply'.
+
   - name: vocab-star-section
     about: "`Vocab` in `[*]` beside a top-level `Vocab` names a vocabulary for
       every file, with rules of its own; it used to be read as a misplaced
