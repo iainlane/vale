@@ -2,6 +2,7 @@ package lint
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -58,7 +59,8 @@ func (l *Linter) lintMarkdownWith(f *core.File, md goldmark.Markdown) error {
 	}
 
 	src := []byte(s)
-	doc := md.Parser().Parse(text.NewReader(src), parser.WithContext(l.mystContext()))
+	ctx := l.mystContext()
+	doc := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	if err = md.Renderer().Render(&buf, src, doc); err != nil {
 		return core.NewE100(f.Path, err)
 	}
@@ -66,8 +68,21 @@ func (l *Linter) lintMarkdownWith(f *core.File, md goldmark.Markdown) error {
 	if md == goldMdx {
 		// The transform rewrites the front matter, so the spans of the
 		// parsed text are not the file's; the file is parsed again for them.
+		fileCtx, fileSrc := ctx, src
 		if s != f.Content {
-			doc = md.Parser().Parse(text.NewReader([]byte(f.Content)), parser.WithContext(l.mystContext()))
+			fileCtx, fileSrc = l.mystContext(), []byte(f.Content)
+			doc = md.Parser().Parse(text.NewReader(fileSrc), parser.WithContext(fileCtx))
+		}
+
+		// The rest of a file after a block that never closed was read as
+		// code, so none of it would be checked; MDX itself rejects the file.
+		if open, ok := ctx.Get(mdxUnclosedKey).(mdxUnclosed); ok {
+			if placed, found := fileCtx.Get(mdxUnclosedKey).(mdxUnclosed); found {
+				open, src = placed, fileSrc
+			}
+			line := bytes.Count(src[:open.offset], []byte("\n")) + 1
+			return core.NewE201FromPosition(fmt.Sprintf(
+				"Invalid MDX: %s, so the rest of the file can't be read.", open.what), f.Path, line)
 		}
 		f.Content = maskSpans(f.Content, mdxTagMasks(doc))
 	}

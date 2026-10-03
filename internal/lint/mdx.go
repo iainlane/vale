@@ -76,6 +76,15 @@ type mdxScan struct {
 	depth   int
 	quote   byte // ' " ` or 0
 	comment bool // inside /* ... */
+
+	// jsx is an element inside the expression, until it completes. Its text
+	// is prose, where a quote or a bracket means nothing.
+	jsx *mdxJsxScan
+
+	// prev is the last byte outside a string or comment, and word the
+	// identifier it ends; they say whether a `<` can begin an element.
+	prev byte
+	word []byte
 }
 
 // scan processes one line.
@@ -93,6 +102,16 @@ func (s *mdxScan) walk(line []byte, expr bool) int {
 	for i := 0; i < len(line); i++ {
 		c := line[i]
 
+		if s.jsx != nil {
+			n := s.jsx.scan(line[i:])
+			if !s.jsx.done {
+				return -1
+			}
+			s.jsx = nil
+			s.note('>')
+			i += n - 1
+			continue
+		}
 		if s.comment {
 			if c == '*' && i+1 < len(line) && line[i+1] == '/' {
 				s.comment = false
@@ -105,6 +124,7 @@ func (s *mdxScan) walk(line []byte, expr bool) int {
 				i++
 			} else if c == s.quote {
 				s.quote = 0
+				s.note(c)
 			}
 			continue
 		}
@@ -112,14 +132,28 @@ func (s *mdxScan) walk(line []byte, expr bool) int {
 		switch c {
 		case '\'', '"', '`':
 			s.quote = c
+			continue
 		case '/':
 			if i+1 < len(line) {
 				if line[i+1] == '*' {
 					s.comment = true
 					i++
+					continue
 				} else if line[i+1] == '/' {
 					return -1 // a line comment runs to the end
 				}
+			}
+		case '<':
+			if s.jsxCanStart() && jsxStarts(line[i:]) {
+				s.jsx = &mdxJsxScan{}
+				n := s.jsx.scan(line[i:])
+				if !s.jsx.done {
+					return -1
+				}
+				s.jsx = nil
+				s.note('>')
+				i += n - 1
+				continue
 			}
 		case '{', '(', '[':
 			s.depth++
@@ -129,8 +163,50 @@ func (s *mdxScan) walk(line []byte, expr bool) int {
 				return i + 1
 			}
 		}
+		s.note(c)
 	}
 	return -1
+}
+
+// note records c as the last significant byte.
+func (s *mdxScan) note(c byte) {
+	if util.IsSpace(c) {
+		return
+	}
+	s.prev = c
+	if mdxIdent(c) {
+		s.word = append(s.word, c)
+	} else {
+		s.word = s.word[:0]
+	}
+}
+
+func mdxIdent(c byte) bool {
+	return c == '_' || c == '$' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// jsxCanStart reports whether a `<` here begins an element rather than a
+// comparison or a type argument: at the start of the expression, after a
+// byte no operand ends with, or after a keyword an expression follows.
+func (s *mdxScan) jsxCanStart() bool {
+	if s.prev == 0 || strings.IndexByte("{([,=:?&|!>;", s.prev) >= 0 {
+		return true
+	}
+	switch string(s.word) {
+	case "return", "yield", "await":
+		return true
+	}
+	return false
+}
+
+// jsxStarts reports whether rest, which begins with `<`, opens an element
+// or a fragment.
+func jsxStarts(rest []byte) bool {
+	if len(rest) < 2 {
+		return false
+	}
+	c := rest[1]
+	return c == '>' || c == '_' || c == '$' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
 // An mdxBlock is one flow-level MDX node: an ESM block, a flow expression,
@@ -332,7 +408,7 @@ func (*mdxEsmParser) Open(_ ast.Node, reader text.Reader, pc parser.Context) (as
 
 	node := &mdxBlock{typ: "mdxjsEsm"}
 	node.scan.scan(line)
-	node.finished = node.scan.depth <= 0
+	node.finished = node.scan.depth <= 0 && !node.scan.comment && node.scan.quote == 0
 	mdxConsume(node, reader)
 
 	return node, parser.NoChildren
@@ -401,7 +477,35 @@ func (*mdxFlowExprParser) Continue(node ast.Node, reader text.Reader, _ parser.C
 	return parser.Continue | parser.NoChildren
 }
 
-func (*mdxFlowExprParser) Close(ast.Node, text.Reader, parser.Context) {}
+func (*mdxFlowExprParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
+	if n, ok := node.(*mdxBlock); ok && !n.finished && n.Lines().Len() > 0 && mdxAtEnd(reader) {
+		mdxNoteUnclosed(pc, n.Lines().At(0).Start, "the expression opened here never closes")
+	}
+}
+
+// mdxUnclosedKey holds the first block a document left open at its end: an
+// expression or a tag the parser read to the end of the file as code, which
+// MDX itself rejects.
+var mdxUnclosedKey = parser.NewContextKey()
+
+// mdxUnclosed is where a block that never closed began, and what it was.
+type mdxUnclosed struct {
+	offset int
+	what   string
+}
+
+// mdxAtEnd reports whether the reader has no input left: a block closed
+// there ran to the end of the file, not to the end of its parent.
+func mdxAtEnd(reader text.Reader) bool {
+	line, _ := reader.PeekLine()
+	return line == nil
+}
+
+func mdxNoteUnclosed(pc parser.Context, offset int, what string) {
+	if pc.Get(mdxUnclosedKey) == nil {
+		pc.Set(mdxUnclosedKey, mdxUnclosed{offset, what})
+	}
+}
 
 func (*mdxFlowExprParser) CanInterruptParagraph() bool { return true }
 func (*mdxFlowExprParser) CanAcceptIndentedLine() bool { return true }
@@ -440,22 +544,26 @@ func mdxTagName(c byte) bool {
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
-// scan processes one line of the element.
-func (s *mdxJsxScan) scan(line []byte) {
+// scan processes one line of the element and returns how much of it was
+// read: all of it, or up to where the element completed.
+func (s *mdxJsxScan) scan(line []byte) int {
 	for i := 0; i < len(line); i++ {
 		c := line[i]
 
 		switch s.mode {
 		case 2: // expression
-			// Scan a single character so the mdxScan's own state (strings,
-			// comments) applies; its depth began at 1 for the opening brace.
-			s.js.scan(line[i : i+1])
-			if s.js.depth <= 0 && !s.js.comment && s.js.quote == 0 {
-				if s.wasInTag {
-					s.mode = 1
-				} else {
-					s.mode = 0
-				}
+			// The expression scanner reads the rest of the line, so an
+			// escape or a line comment is seen whole; its depth began at 1
+			// for the opening brace.
+			end := s.js.scanExpr(line[i:])
+			if end < 0 {
+				return len(line)
+			}
+			i += end - 1
+			if s.wasInTag {
+				s.mode = 1
+			} else {
+				s.mode = 0
 			}
 		case 1: // tag
 			if s.quote != 0 {
@@ -503,9 +611,10 @@ func (s *mdxJsxScan) scan(line []byte) {
 		}
 
 		if s.done {
-			return
+			return i + 1
 		}
 	}
+	return len(line)
 }
 
 func (s *mdxJsxScan) endTag() {
@@ -534,6 +643,19 @@ func (s *mdxJsxScan) clone() mdxJsxScan {
 	t := *s
 	t.stack = append([]string(nil), s.stack...)
 	t.name = append([]byte(nil), s.name...)
+	t.js = s.js.clone()
+	return t
+}
+
+// clone copies the scan, so a trial scan of a prefix leaves the original
+// and the element it may be inside untouched.
+func (s *mdxScan) clone() mdxScan {
+	t := *s
+	t.word = append([]byte(nil), s.word...)
+	if s.jsx != nil {
+		jsx := s.jsx.clone()
+		t.jsx = &jsx
+	}
 	return t
 }
 
@@ -784,6 +906,7 @@ func (*mdxJsxFlowParser) Continue(node ast.Node, reader text.Reader, _ parser.Co
 		}
 		if n.jsx.done {
 			// Childless after all: a multiline self-closing element.
+			n.pending = false
 			n.raw.Write(bytes.TrimRight(line, "\n"))
 			n.rawOnly = true
 			n.spans = append(n.spans, [2]int{seg.Start, seg.Stop})
@@ -817,7 +940,11 @@ func (*mdxJsxFlowParser) Continue(node ast.Node, reader text.Reader, _ parser.Co
 	return parser.Continue | parser.HasChildren
 }
 
-func (*mdxJsxFlowParser) Close(ast.Node, text.Reader, parser.Context) {}
+func (*mdxJsxFlowParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
+	if n, ok := node.(*mdxJsxContainer); ok && n.pending && len(n.spans) > 0 && mdxAtEnd(reader) {
+		mdxNoteUnclosed(pc, n.spans[0][0], "the tag opened here never ends")
+	}
+}
 
 func (*mdxJsxFlowParser) CanInterruptParagraph() bool { return true }
 func (*mdxJsxFlowParser) CanAcceptIndentedLine() bool { return true }

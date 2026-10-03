@@ -604,7 +604,7 @@ cases:
       _vale: |
         MinAlertLevel = suggestion
 
-        [*.md]
+        [*.{md,mdx}]
         BasedOnStyles = Vale
       a-broken.md: |
         ---
@@ -612,6 +612,24 @@ cases:
         ---
 
         Text.
+      b-tag.mdx: |
+        # Title
+
+        <Card title={
+
+        This is never read.
+      c-expr.mdx: |
+        ---
+        title: Front matter
+        description: "Two lines
+          long"
+        ---
+
+        # Title
+
+        {1 +
+
+        This is never read.
       d-good.md: |
         This is a speling mistake.
     args: .
@@ -621,6 +639,8 @@ cases:
       test.md:1:66:Vale.Spelling:Use 'JavaScript' instead of 'javascript'.
       test.md:1:77:Vale.Spelling:Did you really mean 'agendize'?
       a-broken.md:1:E201:yaml: line 1: did not find expected ',' or ']'
+      b-tag.mdx:3:E201:Invalid MDX: the tag opened here never ends, so the rest of the file can't be read.
+      c-expr.mdx:9:E201:Invalid MDX: the expression opened here never closes, so the rest of the file can't be read.
 
   - name: package-styles-dropped
     about: a project's section that replaces the styles a package turns on, and

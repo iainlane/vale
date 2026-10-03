@@ -183,6 +183,42 @@ func TestMdxHTML(t *testing.T) {
 			[]string{`<div class="my-Component">`, "<p>Text here.</p>", "<p>Prose here.</p>"},
 			[]string{"my.Component<"},
 		},
+		{
+			"an escaped quote inside an attribute expression",
+			"<Table rows={[{d: 'the cluster\\'s version', e: \"a \\\"quoted\\\" word\"}]} />\n\nProse here.\n",
+			[]string{`<code class="mdxNode mdxJsxFlowElement">`, "<p>Prose here.</p>"},
+			[]string{"<p>Prose here.</p></code>"},
+		},
+		{
+			"an export whose template literal spans lines",
+			"export const c = `a(\n  \\`b\\`, {x}\n)`;\n\nProse here.\n",
+			[]string{`<pre><code class="mdxNode mdxjsEsm">`, "<p>Prose here.</p>"},
+			[]string{"<p>export", "<p>)`"},
+		},
+		{
+			"a fragment with an apostrophe inside an attribute expression",
+			"<C\n  title={<><Code>\n    X\n  </Code> d'env (note)</>\n  }\n>\n  Body here.\n</C>\n\nProse here.\n",
+			[]string{"<p>Body here.</p>", "<p>Prose here.</p>"},
+			[]string{"<p>X", "<p>d'env"},
+		},
+		{
+			"JSX text inside a flow expression",
+			"{\n\n<table><tr><td>(per month) don't</td></tr></table>\n\n}\n\nProse here.\n",
+			[]string{`<pre><code class="mdxNode mdxFlowExpression">`, "<p>Prose here.</p>"},
+			[]string{"<p>(per", "<p>}"},
+		},
+		{
+			"JSX returned from a function inside an expression",
+			"{(() => { return <b>don't</b> })()}\n\nProse here.\n",
+			[]string{`<code class="mdxNode mdxFlowExpression">`, "<p>Prose here.</p>"},
+			[]string{"<p>{("},
+		},
+		{
+			"a type argument inside an expression is not JSX",
+			"{useState<string>('x')}\n\nProse here.\n",
+			[]string{`<code class="mdxNode mdxFlowExpression">`, "<p>Prose here.</p>"},
+			[]string{"<p>{use"},
+		},
 	}
 
 	for _, c := range cases {
