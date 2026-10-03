@@ -150,7 +150,7 @@ cases:
         BasedOnStyles = Vale
       styles/config/vocabularies/Proj/accept.txt: |
         Kubernetes
-        kubectl
+        kubeadm
       alert.json: |
         {
           "Action": {"Name": "suggest", "Params": ["spellings"]},
@@ -158,9 +158,9 @@ cases:
           "Check": "Vale.Spelling",
           "Description": "",
           "Link": "",
-          "Message": "Did you really mean 'kubctl'?",
+          "Message": "Did you really mean 'kubadm'?",
           "Severity": "error",
-          "Match": "kubctl",
+          "Match": "kubadm",
           "Line": 1
         }
     args: fix alert.json
@@ -168,12 +168,12 @@ cases:
     want: |
       {
           "suggestions": [
-              "kubectl",
-              "cubical",
-              "cubital",
-              "Dubcek",
-              "Jubal",
-              "btl"
+              "kubeadm",
+              "aubade",
+              "kurbash",
+              "subadar",
+              "Cuba",
+              "Cuba's"
           ],
           "error": ""
       }

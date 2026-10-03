@@ -69,3 +69,38 @@ func TestDefaultDictionaryIgnoredDirectives(t *testing.T) {
 		t.Errorf("Ignored() = %v, want none", got)
 	}
 }
+
+// The bundled dictionary knows common technical vocabulary, including
+// plurals and possessives of acronyms, but still rejects names in the wrong case.
+func TestDefaultDictionaryTechnicalVocabulary(t *testing.T) {
+	checker, err := NewChecker()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]bool{
+		"repo": true, "repos": true, "config's": true, "namespaces": true,
+		"hostname": true, "deduplicated": true, "boolean": true, "RESTful": true,
+		"APIs": true, "API's": true, "PRs": true, "SDKs": true, "VMs": true,
+		"Grafana": true, "Xcode": true, "walkthroughs": true,
+
+		"grafana": false, "XCode": false, "github": false, "Javascript": false,
+		"yaml": false, "everytime": false, "walkthroughes": false,
+
+		// A contraction missing its apostrophe is a typo, not the rare word.
+		"cant": false, "wont": false, "can't": true, "won't": true,
+		"decanted": true, "recant": true, "canted": true, "wonted": true,
+
+		// Obscure entries one edit from a common word are gone; the common
+		// words their flags used to produce are not.
+		"pervious": false, "flor": false, "typw": false, "relict": false,
+		"previous": true, "rather": true, "bitten": true, "stricken": true,
+		"descend": true, "reduce": true, "derelict": true, "redux": true,
+		"unbidden": true, "moduli": true,
+	}
+	for word, ok := range want {
+		if got := checker.Spell(word); got != ok {
+			t.Errorf("Spell(%q) = %v, want %v", word, got, ok)
+		}
+	}
+}

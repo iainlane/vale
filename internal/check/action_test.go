@@ -380,15 +380,15 @@ func TestSuggestForPrefersVocabulary(t *testing.T) {
 	}
 	rule := mgr.Rules()["T.Spelling"].(Spelling)
 
-	plain := rule.SuggestFor("kubctl", nil)
-	if len(plain) > 0 && plain[0] == "kubectl" {
-		t.Fatal("the dictionary knows kubectl; the test proves nothing")
+	plain := rule.SuggestFor("kubadm", nil)
+	if len(plain) > 0 && plain[0] == "kubeadm" {
+		t.Fatal("the dictionary knows kubeadm; the test proves nothing")
 	}
 
-	mgr.Config.AcceptedTokens = []string{"kubectl"}
-	got := rule.SuggestFor("kubctl", mgr.Config)
-	if len(got) == 0 || got[0] != "kubectl" {
-		t.Errorf("SuggestFor = %v, want kubectl first", got)
+	mgr.Config.AcceptedTokens = []string{"kubeadm"}
+	got := rule.SuggestFor("kubadm", mgr.Config)
+	if len(got) == 0 || got[0] != "kubeadm" {
+		t.Errorf("SuggestFor = %v, want kubeadm first", got)
 	}
 	for i, w := range got {
 		for _, later := range got[i+1:] {

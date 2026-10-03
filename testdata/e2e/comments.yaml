@@ -151,46 +151,46 @@ cases:
         BasedOnStyles = Vale
       test.mdx: |
         owner: Could not determine whether revision 1 is supported, assuming it is.
-        iptables v1.8.9 (legacy): can't initialize iptables table `raw': Permission denied.
-        Perhaps iptables or your kernel needs to be upgraded.
+        nftables v1.8.9 (legacy): can't initialize nftables table `raw': Permission denied.
+        Perhaps nftables or your kernel needs to be upgraded.
 
         {/* vale off */}
 
         owner: Could not determine whether revision 1 is supported, assuming it is.
-        iptables v1.8.9 (legacy): can't initialize iptables table `raw': Permission denied.
-        Perhaps iptables or your kernel needs to be upgraded.
+        nftables v1.8.9 (legacy): can't initialize nftables table `raw': Permission denied.
+        Perhaps nftables or your kernel needs to be upgraded.
 
         {/* vale on */}
 
         {/* vale off */}
         ```
         owner: Could not determine whether revision 1 is supported, assuming it is.
-        iptables v1.8.9 (legacy): can't initialize iptables table `raw': Permission denied.
-        Perhaps iptables or your kernel needs to be upgraded.
+        nftables v1.8.9 (legacy): can't initialize nftables table `raw': Permission denied.
+        Perhaps nftables or your kernel needs to be upgraded.
         ```
         {/* vale on */}
 
         {/* vale off */}
         ```shell
         owner: Could not determine whether revision 1 is supported, assuming it is.
-        iptables v1.8.9 (legacy): can't initialize iptables table `raw': Permission denied.
-        Perhaps iptables or your kernel needs to be upgraded.
+        nftables v1.8.9 (legacy): can't initialize nftables table `raw': Permission denied.
+        Perhaps nftables or your kernel needs to be upgraded.
         ```
         {/* vale on */}
 
         {/* vale off */}
         ```shell {2,4} mark="determine"
         owner: Could not determine whether revision 1 is supported, assuming it is.
-        iptables v1.8.9 (legacy): can't initialize iptables table `raw': Permission denied.
-        Perhaps iptables or your kernel needs to be upgraded.
+        nftables v1.8.9 (legacy): can't initialize nftables table `raw': Permission denied.
+        Perhaps nftables or your kernel needs to be upgraded.
         ```
         {/* vale on */}
     args: --output=line --no-exit test.mdx
     exit: 0
     want: |
-      test.mdx:2:1:Vale.Spelling:Did you really mean 'iptables'?
-      test.mdx:2:44:Vale.Spelling:Did you really mean 'iptables'?
-      test.mdx:3:9:Vale.Spelling:Did you really mean 'iptables'?
+      test.mdx:2:1:Vale.Spelling:Did you really mean 'nftables'?
+      test.mdx:2:44:Vale.Spelling:Did you really mean 'nftables'?
+      test.mdx:3:9:Vale.Spelling:Did you really mean 'nftables'?
 
   - name: off-region-after-imports
     about: "#1073 -- ESM import lines before a vale-off region, holding

@@ -579,20 +579,20 @@ cases:
         Zorbblat
       styles/config/vocabularies/API/accept.txt: |
         Quxelate
-        kubectl
+        kubeadm
       styles/config/vocabularies/API/reject.txt: |
         k8s
       api/page.md: |
-        Run kubectl on Zorbblat with Quxelate, not quxelate or k8s.
+        Run kubeadm on Zorbblat with Quxelate, not quxelate or k8s.
       docs/page.md: |
-        Run kubectl on Zorbblat with Quxelate, not quxelate or k8s.
+        Run kubeadm on Zorbblat with Quxelate, not quxelate or k8s.
     args: api/page.md docs/page.md
     exit: 1
     want: |
       api/page.md:1:44:Vale.API.Terms:Use 'Quxelate' instead of 'quxelate'.
       api/page.md:1:44:Vale.Spelling:Did you really mean 'quxelate'?
       api/page.md:1:56:Vale.API.Avoid:Avoid using 'k8s'.
-      docs/page.md:1:5:Vale.Spelling:Did you really mean 'kubectl'?
+      docs/page.md:1:5:Vale.Spelling:Did you really mean 'kubeadm'?
       docs/page.md:1:30:Vale.Spelling:Did you really mean 'Quxelate'?
       docs/page.md:1:44:Vale.Spelling:Did you really mean 'quxelate'?
 

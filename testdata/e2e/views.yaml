@@ -8,7 +8,6 @@ cases:
     exit: 1
     want: |
       API.yml:3:10:Scopes.Titles:'sample API' should be capitalized
-      API.yml:4:25:Vale.Spelling:Did you really mean 'multiline'?
       API.yml:9:70:Vale.Spelling:Did you really mean 'serrver'?
       API.yml:13:24:Vale.Spelling:Did you really mean 'serrver'?
       API.yml:15:70:Vale.Spelling:Did you really mean 'serrver'?
@@ -21,25 +20,17 @@ cases:
       Petstore.yaml:407:17:Vale.Spelling:Did you really mean 'nonintegers'?
       Rule.yml:3:39:Vale.Repetition:'can' is repeated!
       ansible.yml:3:13:Scopes.Titles:'reusing Code with Ansible Roles and Coent Collections' should be capitalized
-      ansible.yml:3:31:Vale.Spelling:Did you really mean 'Ansible'?
       ansible.yml:3:49:Vale.Spelling:Did you really mean 'Coent'?
-      ansible.yml:5:11:Vale.Spelling:Did you really mean 'Ansible'?
-      ansible.yml:5:29:Vale.Spelling:Did you really mean 'Ansible'?
       ansible.yml:5:60:Vale.Spelling:Did you really mean 'devlop'?
-      ansible.yml:5:103:Vale.Spelling:Did you really mean 'Ansible'?
       ansible.yml:13:28:Vale.Spelling:Did you really mean 'purose'?
-      ansible.yml:13:41:Vale.Spelling:Did you really mean 'Ansible'?
       github-workflow.json:18:53:Vale.Spelling:Did you really mean 'pull_request'?
       github-workflow.json:228:256:Vale.Spelling:Did you really mean 'env'?
-      github-workflow.json:258:83:Vale.Spelling:Did you really mean 'repo'?
       github-workflow.json:356:53:Vale.Spelling:Did you really mean 'pull_request'?
       github-workflow.json:497:213:Vale.Spelling:Did you really mean 'INPUT_'?
       github-workflow.json:543:293:Vale.Spelling:Did you really mean 'prereleased'?
       github-workflow.json:617:89:Vale.Spelling:Did you really mean 'job_id'?
       github-workflow.json:717:89:Vale.Spelling:Did you really mean 'job_id'?
       github-workflow.json:902:164:Vale.Spelling:Did you really mean 'redis'?
-      github-workflow.json:902:618:Vale.Spelling:Did you really mean 'hostname'?
-      github-workflow.json:902:632:Vale.Spelling:Did you really mean 'hostname'?
       issue1018.yml:3:26:Vale.Spelling:Did you really mean 'misspeling'?
       issue1018.yml:7:9:Vale.Spelling:Did you really mean 'misspeled'?
       test.java:13:38:vale.Annotations:'XXX' left in text
