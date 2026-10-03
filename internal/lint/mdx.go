@@ -361,8 +361,15 @@ func (p mdxIndented) Open(parent ast.Node, reader text.Reader, pc parser.Context
 		pc.SetBlockIndent(indent)
 		return nil, state
 	}
+	// The columns a closed block left on this line pass to the first block
+	// opened in its place. A block opened within that one on the same line
+	// -- a list's first item, say -- must not take them too: its parent eats
+	// them first on every later line, so it would eat past the line's own
+	// indentation and close on a line its parent kept, and the parent, left
+	// open with no item, would take the next block as a child of its own.
 	if own := st.orphan(lineNum) + eaten; own > 0 {
 		st.owned[node] = own
+		st.orphaned = 0
 	}
 	return node, state
 }
@@ -370,6 +377,14 @@ func (p mdxIndented) Open(parent ast.Node, reader text.Reader, pc parser.Context
 func (p mdxIndented) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
 	st := mdxIndentOf(pc)
 	lineNum, _ := reader.Position()
+
+	// A list holds items. One that was given another kind of child can't
+	// continue: the list parser reads its last child as an item, and panics.
+	if list, ok := node.(*ast.List); ok && list.LastChild() != nil {
+		if _, isItem := list.LastChild().(*ast.ListItem); !isItem {
+			return parser.Close
+		}
+	}
 
 	eaten := 0
 	if own := st.owned[node]; own > 0 {
@@ -1081,11 +1096,11 @@ func renderMdxContainer(w util.BufWriter, _ []byte, node ast.Node, entering bool
 	}
 
 	if n.rawOnly {
-		if entering {
-			_, _ = w.WriteString(`<pre><code class="mdxNode mdxJsxFlowElement">`)
-			_, _ = w.Write(util.EscapeHTML(bytes.TrimRight(n.raw.Bytes(), "\n")))
-			_, _ = w.WriteString("</code></pre>\n")
-		}
+		// A childless element is tags and nothing else, so it renders as
+		// nothing, like a container's tags: its source is masked out of the
+		// search context, and the walker must not then look for it there,
+		// which moved every later match and lost the alerts whose words the
+		// element also held.
 		return ast.WalkContinue, nil
 	}
 

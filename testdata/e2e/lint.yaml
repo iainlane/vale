@@ -1313,6 +1313,36 @@ cases:
       test.mdx:11:26:T.Marker:'XXX' left in text
       test.mdx:15:21:T.Marker:'XXX' left in text
 
+  - name: mdx/childless-element
+    about: a self-closing element that spans lines is code, and the prose
+      after it is found where it is when the element's attributes hold the
+      same words; the element's text used to be masked out of the search
+      context as well as rendered as code, which lost the prose's alert
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [*.mdx]
+        T.Marker = YES
+      styles/T/Marker.yml: |
+        extends: existence
+        message: "'%s' left in text"
+        level: error
+        tokens:
+          - XXX
+      test.mdx: |
+        <Card
+          title={'An XXX marker in a title'}
+          href="/x"
+        />
+
+        Prose with an XXX marker.
+    args: test.mdx
+    exit: 1
+    want: |
+      test.mdx:6:15:T.Marker:'XXX' left in text
+
   - name: mdx/jsx-children-ignored
     about: "#1155 -- IgnoredClasses excludes one component's children, since
       the element's name is their class."
