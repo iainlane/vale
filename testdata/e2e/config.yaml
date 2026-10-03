@@ -596,6 +596,88 @@ cases:
       docs/page.md:1:30:Vale.Spelling:Did you really mean 'Quxelate'?
       docs/page.md:1:44:Vale.Spelling:Did you really mean 'quxelate'?
 
+  - name: vocab-star-section
+    about: "`Vocab` in `[*]` beside a top-level `Vocab` names a vocabulary for
+      every file, with rules of its own; it used to be read as a misplaced
+      core option"
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Base
+
+        [*]
+        BasedOnStyles = Vale
+        Vocab = Pkg
+      styles/config/vocabularies/Base/accept.txt: |
+        Quxelate
+      styles/config/vocabularies/Pkg/accept.txt: |
+        Zorbblat
+      page.md: |
+        Zorbblat and Quxelate, then zorbblat and quxelate.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:29:Vale.Pkg.Terms:Use 'Zorbblat' instead of 'zorbblat'.
+      page.md:1:29:Vale.Spelling:Did you really mean 'zorbblat'?
+      page.md:1:42:Vale.Terms:Use 'Quxelate' instead of 'quxelate'.
+
+  - name: vocab-from-a-package
+    about: a package's `[*]` vocabulary adds to the project's, and the project
+      can switch off its rules by name, or clear it with `Vocab = NONE`
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = Base
+
+        [*]
+        BasedOnStyles = Vale
+        Vale.Pkg.Terms = NO
+      styles/.vale-config/1-Pkg.ini: |
+        [*]
+        Vocab = Pkg
+      styles/config/vocabularies/Base/accept.txt: |
+        Quxelate
+      styles/config/vocabularies/Pkg/accept.txt: |
+        Zorbblat
+      page.md: |
+        Zorbblat and Quxelate, then zorbblat and quxelate.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:29:Vale.Spelling:Did you really mean 'zorbblat'?
+      page.md:1:42:Vale.Terms:Use 'Quxelate' instead of 'quxelate'.
+
+  - name: vocab-none
+    about: "`Vocab = NONE` clears the vocabularies earlier layers named at the
+      same level: in `[*]` the package's, at the top the project's own"
+    files:
+      _vale: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+        Vocab = NONE
+
+        [*]
+        BasedOnStyles = Vale
+        Vocab = NONE
+      styles/.vale-config/1-Pkg.ini: |
+        Vocab = Base
+
+        [*]
+        Vocab = Pkg
+      styles/config/vocabularies/Base/accept.txt: |
+        Quxelate
+      styles/config/vocabularies/Pkg/accept.txt: |
+        Zorbblat
+      page.md: |
+        Zorbblat and Quxelate.
+    args: page.md
+    exit: 1
+    want: |
+      page.md:1:1:Vale.Spelling:Did you really mean 'Zorbblat'?
+      page.md:1:14:Vale.Spelling:Did you really mean 'Quxelate'?
+
   - name: vocab-yaml
     about: "#1089 -- a vocab.yml beside accept.txt: a term is literal and
       enforces its case; `flags` expands Hunspell affix flags; `ignorecase`

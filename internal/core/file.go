@@ -164,6 +164,9 @@ func NewFile(src string, config *Config) (*File, error) {
 	unset := make(map[string]bool)
 	var vocab []string
 
+	// `[*]` names vocabularies for every file; their rules are global.
+	vocab = append(vocab, config.SVocab["*"]...)
+
 	// Sections are visited in the order they were written, so a later one
 	// wins -- for this file, and no other. See #965.
 	for _, fp := range filepaths {

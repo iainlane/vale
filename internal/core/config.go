@@ -354,7 +354,7 @@ type Vocabulary struct {
 // SectionVocabs names every vocabulary some section uses.
 func (c *Config) SectionVocabs() []string {
 	var names []string
-	for _, sec := range c.RuleKeys {
+	for _, sec := range append([]string{"*"}, c.RuleKeys...) {
 		for _, name := range c.SVocab[sec] {
 			if !StringInSlice(name, names) {
 				names = append(names, name)

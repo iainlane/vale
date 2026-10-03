@@ -237,14 +237,19 @@ func lastValue(key *ini.Key) string {
 // follows BasedOnStyles and its own level again.
 const unsetValue = "UNSET"
 
-// noneValue is `BasedOnStyles = NONE`, the spelled-out form of an empty
-// value: no styles, and nothing inherited.
+// noneValue is `BasedOnStyles = NONE` or `Vocab = NONE`, the spelled-out
+// form of an empty value: nothing listed, and nothing inherited.
 const noneValue = "NONE"
 
-// baseStyles reads a BasedOnStyles key. Its values arrive merged across the
+// baseStyles reads a BasedOnStyles key.
+func baseStyles(key *ini.Key) []string {
+	return valuesAfterNone(key)
+}
+
+// valuesAfterNone reads a list key. Its values arrive merged across the
 // configuration's layers, so NONE clears whatever came before it and the
 // last layer to say NONE wins.
-func baseStyles(key *ini.Key) []string {
+func valuesAfterNone(key *ini.Key) []string {
 	values := key.StringsWithShadows(",")
 	for i := len(values) - 1; i >= 0; i-- {
 		if strings.TrimSpace(values[i]) == noneValue {
@@ -277,7 +282,7 @@ func validateLevel(key, val string, levels map[string]string) bool {
 
 var syntaxOpts = map[string]func(string, *ini.Section, *Config) error{
 	"Vocab": func(lbl string, sec *ini.Section, cfg *Config) error {
-		names := mergeValues(sec.Key("Vocab").StringsWithShadows(","))
+		names := valuesAfterNone(sec.Key("Vocab"))
 		for _, name := range names {
 			if _, err := loadVocabulary(name, cfg); err != nil {
 				return err
@@ -438,7 +443,7 @@ var coreOpts = map[string]func(*ini.Section, *Config) error{
 		return nil
 	},
 	"Vocab": func(sec *ini.Section, cfg *Config) error {
-		cfg.Vocab = mergeValues(sec.Key("Vocab").StringsWithShadows(","))
+		cfg.Vocab = valuesAfterNone(sec.Key("Vocab"))
 		for _, v := range cfg.Vocab {
 			if err := loadVocab(v, cfg); err != nil {
 				return err
@@ -632,7 +637,9 @@ func processConfig(uCfg *ini.File, cfg *Config, dry bool) (*ini.File, error) {
 
 	// Global settings
 	for _, k := range global.KeyStrings() {
-		if _, option := coreOpts[k]; option {
+		if k == "Vocab" {
+			continue // read below, once every rule setting is known
+		} else if _, option := coreOpts[k]; option {
 			return nil, NewE201FromTarget(fmt.Sprintf(coreError, k), k, cfg.RootINI)
 		} else if f, found := globalOpts[k]; found {
 			f(global, cfg)
@@ -648,6 +655,23 @@ func processConfig(uCfg *ini.File, cfg *Config, dry bool) (*ini.File, error) {
 			cfg.GChecks[k] = validateLevel(k, lastValue(global.Key(k)), cfg.RuleToLevel)
 			cfg.Checks = append(cfg.Checks, k)
 		}
+	}
+
+	// `[*]` names vocabularies for every file, with rules of their own that
+	// are on unless a setting in `[*]` says otherwise.
+	if global.HasKey("Vocab") {
+		names := valuesAfterNone(global.Key("Vocab"))
+		for _, name := range names {
+			if _, err := loadVocabulary(name, cfg); err != nil && !dry {
+				return nil, err
+			}
+			for _, rule := range []string{".Terms", ".Avoid"} {
+				if _, set := cfg.GChecks["Vale."+name+rule]; !set {
+					cfg.GChecks["Vale."+name+rule] = true
+				}
+			}
+		}
+		cfg.SVocab["*"] = names
 	}
 
 	// Syntax-specific settings
