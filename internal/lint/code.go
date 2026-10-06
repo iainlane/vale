@@ -42,7 +42,7 @@ func (l *Linter) skipsComment(scope string) bool {
 }
 
 func (l *Linter) lintCode(f *core.File) error {
-	lang, err := code.GetLanguageFromExt(f.RealExt)
+	lang, err := code.GetLanguageFromExt(f.NormedExt)
 	if err != nil {
 		// No tree-sitter grammar available for this file type.
 		return l.lintCodeOld(f)

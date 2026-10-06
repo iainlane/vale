@@ -1852,6 +1852,82 @@ cases:
       test.pl:5:21:vale.Annotations:'XXX' left in text
       test.pl:8:7:vale.Annotations:'TODO' left in text
 
+  - name: perl-format-mapping
+    about: a `.nix` file has no grammar, so under `nix = pl` Vale reads its
+      comments as Perl comments
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [formats]
+        nix = pl
+
+        [*]
+        T.Tok = YES
+      styles/T/Tok.yml: |
+        extends: existence
+        message: "'%s' found"
+        level: error
+        tokens:
+          - ZQX
+      default.nix: |
+        # A ZQX in a comment.
+        { value = "ZQX"; }
+    args: default.nix
+    exit: 1
+    want: |
+      default.nix:1:5:T.Tok:'ZQX' found
+
+  - name: perl-ext-flag
+    about: a `.nix` file has no grammar, so under `--ext=.pl` Vale reads its
+      comments as Perl comments
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [*]
+        T.Tok = YES
+      styles/T/Tok.yml: |
+        extends: existence
+        message: "'%s' found"
+        level: error
+        tokens:
+          - ZQX
+      default.nix: |
+        # A ZQX in a comment.
+        { value = "ZQX"; }
+    args: "--ext=.pl default.nix"
+    exit: 1
+    want: |
+      default.nix:1:5:T.Tok:'ZQX' found
+
+  - name: ext-flag-overrides-grammar
+    about: "`--ext=.c` parses a `.ts` file as C even though TypeScript has a
+      grammar, so `//` in a template literal starts a comment"
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [*]
+        T.Tok = YES
+      styles/T/Tok.yml: |
+        extends: existence
+        message: "'%s' found"
+        level: error
+        tokens:
+          - ZQX
+      test.ts: |
+        const s = `// ZQX in a template literal`;
+        // ZQX in a comment.
+    args: "--ext=.c test.ts"
+    exit: 1
+    want: |
+      test.ts:1:15:T.Tok:'ZQX' found
+      test.ts:2:4:T.Tok:'ZQX' found
+
   - name: php
     args: test.php
     exit: 0

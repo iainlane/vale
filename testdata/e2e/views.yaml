@@ -498,3 +498,34 @@ cases:
       site.yml:1:7:Vale.Spelling:Did you really mean 'defalt'?
       site.yml:2:23:Vale.Spelling:Did you really mean 'storag'?
       site.yml:3:29:Vale.Spelling:Did you really mean 'trailng'?
+
+  - name: data-comments-format-mapping
+    about: a `.conf` file has no grammar, so under `conf = yml` Vale reads its
+      comments as YAML comments
+    files:
+      .vale.ini: |
+        StylesPath = styles
+        MinAlertLevel = suggestion
+
+        [formats]
+        conf = yml
+
+        [*.conf]
+        BasedOnStyles = Vale
+        Vale.Terms = NO
+        Vale.Avoid = NO
+        Vale.Repetition = NO
+        View = Data
+      styles/config/views/Data.yml: |
+        engine: dasel
+        scopes:
+          - name: title
+            expr: title
+      site.conf: |
+        # The defalt settings.
+        title: A guide to the storag layer
+    args: site.conf
+    exit: 1
+    want: |
+      site.conf:1:7:Vale.Spelling:Did you really mean 'defalt'?
+      site.conf:2:23:Vale.Spelling:Did you really mean 'storag'?

@@ -106,7 +106,7 @@ func (l *Linter) lintData(f *core.File) error {
 // lintDataComments lints the comments of a data file that has a grammar --
 // YAML or TOML -- and does nothing for one that has no comments to read.
 func (l *Linter) lintDataComments(f *core.File) error {
-	if _, err := code.GetLanguageFromExt(f.RealExt); err == nil {
+	if _, err := code.GetLanguageFromExt(f.NormedExt); err == nil {
 		return l.lintCode(f)
 	}
 	return nil
